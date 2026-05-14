@@ -6,11 +6,19 @@ import matplotlib.pyplot as plt
 with open("entradas/datos.json", "r", encoding="utf-8") as archivo:
     datos = json.load(archivo)
 
-aperturas_texto = str(
-    datos.get("aperturas_disponibles")
-    or datos.get("apertura_haz")
-    or "120"
+aperturas_disponibles = str(
+    datos.get("aperturas_disponibles", "-")
 ).strip()
+
+apertura_haz = str(
+    datos.get("apertura_haz", "-")
+).strip()
+
+# Si la IA puso "Si" por error, usamos apertura_haz
+if aperturas_disponibles.lower() in ["si", "sí", "yes", "-", ""]:
+    aperturas_texto = apertura_haz
+else:
+    aperturas_texto = aperturas_disponibles
 
 if "difusa" in aperturas_texto.lower():
     apertura = 120
@@ -19,6 +27,24 @@ else:
     apertura = float(numeros[0]) if numeros else 120
 
 # Guardar óptica realmente representada
+
+# -------------------------
+# LIMPIAR ÓPTICAS DISPONIBLES
+# -------------------------
+
+aperturas_disponibles = str(
+    datos.get("aperturas_disponibles", "-")
+).strip()
+
+if aperturas_disponibles.lower() in [
+    "si",
+    "sí",
+    "yes",
+    "-",
+    ""
+]:
+    datos["aperturas_disponibles"] = f"{int(apertura)}°"
+
 datos["optica_grafico"] = f"{int(apertura)}°"
 
 with open("entradas/datos.json", "w", encoding="utf-8") as archivo:
