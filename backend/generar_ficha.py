@@ -24,53 +24,63 @@ print("Archivos anteriores limpiados")
 # PIPELINE
 # -------------------------
 
-print("1/8 Extrayendo imágenes del PDF...")
+print("1/9 Extrayendo imágenes del PDF...")
 subprocess.run(
     ["python3", "backend/extraer_imagenes_pdf.py"],
     check=True
 )
 
-print("2/8 Extrayendo datos técnicos...")
+print("2/9 Extrayendo datos técnicos...")
 subprocess.run(
     ["python3", "backend/extraer_datos.py"],
     check=True
 )
 
-print("3/8 Preparando imagen del producto...")
+print("3/9 Preparando imagen del producto...")
 subprocess.run(
     ["python3", "backend/preparar_producto.py"],
     check=True
 )
 
-print("4/8 Generando fotometría...")
+# -------------------------
+# NUEVO PASO IA
+# -------------------------
+
+print("4/9 Mejorando producto con IA...")
+subprocess.run(
+    ["python3", "backend/mejorar_producto_ia.py"],
+    check=True
+)
+
+print("5/9 Generando fotometría...")
 subprocess.run(
     ["python3", "backend/generar_fotometria.py"],
     check=True
 )
 
-print("5/8 Validando imágenes...")
+print("6/9 Validando imágenes...")
 subprocess.run(
     ["python3", "backend/validar_imagenes.py"],
     check=True
 )
 
 # -------------------------
-# REPORTE NUEVO
+# REPORTE
 # -------------------------
 
-print("6/8 Generando reporte de control...")
+print("7/9 Generando reporte de control...")
 subprocess.run(
     ["python3", "backend/reporte_prueba.py"],
     check=True
 )
 
-print("7/8 Generando ficha PowerPoint...")
+print("8/9 Generando ficha PowerPoint...")
 subprocess.run(
     ["python3", "backend/main.py"],
     check=True
 )
 
-print("8/8 Exportando PDF final...")
+print("9/9 Exportando PDF final...")
 subprocess.run(
     ["python3", "backend/exportar_pdf.py"],
     check=True

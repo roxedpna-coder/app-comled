@@ -1,4 +1,4 @@
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageFilter
 import os
 import numpy as np
 
@@ -100,6 +100,50 @@ def recortar_fondo_claro(img):
 
 
 # -------------------------
+# MEJORAR CALIDAD PRODUCTO
+# -------------------------
+
+def mejorar_calidad_producto(img):
+    img = img.convert("RGBA")
+
+    ancho, alto = img.size
+    lado_mayor = max(ancho, alto)
+
+    # Si la imagen viene pequeña, la ampliamos antes de insertarla en PPT
+    if lado_mayor < 900:
+        factor = 3
+        print("Producto pequeño detectado: aumentando resolución x3")
+
+    elif lado_mayor < 1400:
+        factor = 2
+        print("Producto mediano detectado: aumentando resolución x2")
+
+    else:
+        factor = 1
+        print("Producto con resolución suficiente")
+
+    if factor > 1:
+        img = img.resize(
+            (
+                img.width * factor,
+                img.height * factor
+            ),
+            Image.LANCZOS
+        )
+
+    # Nitidez suave para evitar que se vea borroso
+    img = img.filter(
+        ImageFilter.UnsharpMask(
+            radius=1.6,
+            percent=145,
+            threshold=3
+        )
+    )
+
+    return img
+
+
+# -------------------------
 # RECORTAR BLANCO
 # -------------------------
 
@@ -144,6 +188,9 @@ def validar_producto():
     img = recortar_fondo_claro(img)
     img = recortar_transparencia(img)
 
+    # Mejorar resolución y nitidez antes de guardar
+    img = mejorar_calidad_producto(img)
+
     margen = 25
 
     canvas = Image.new(
@@ -163,7 +210,7 @@ def validar_producto():
 
     canvas.save(producto_path)
 
-    print("Producto validado y recortado")
+    print("Producto validado, ampliado y mejorado")
 
 
 # -------------------------
