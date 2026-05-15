@@ -1,0 +1,10 @@
+{
+  "datos_faltantes": [
+    "eficacia_luminosa",
+    "ugr",
+    "apertura_haz",
+    "clase_aislamiento"
+  ],
+  "imagenes_faltantes": [],
+  "listo_para_generar": false
+}

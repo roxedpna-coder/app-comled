@@ -101,6 +101,18 @@ optica_grafico = datos.get("optica_grafico", "-")
 # REEMPLAZOS
 # -------------------------
 
+# Soporte de compatibilidad para plantillas antiguas/nuevas
+if "cct_resumido" not in datos:
+    datos["cct_resumido"] = datos.get("cct", "-")
+if "ip_resumido" not in datos:
+    datos["ip_resumido"] = datos.get("ip", "-")
+if "potencia_resumido" not in datos:
+    datos["potencia_resumido"] = datos.get("potencia", "-")
+if "flujo_resumido" not in datos:
+    datos["flujo_resumido"] = datos.get("flujo_luminoso", "-")
+if "eficacia_resumido" not in datos:
+    datos["eficacia_resumido"] = datos.get("eficacia_luminosa", "-")
+
 reemplazos = {}
 
 for clave, valor in datos.items():
