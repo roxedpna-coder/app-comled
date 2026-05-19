@@ -61,7 +61,23 @@ def detectar_nombre_y_codigo(texto):
     return "-", codigo
 
 
+# Cargar configuración manual si existe (desde inputs de la UI)
+config_manual = {}
+config_path = "entradas/config_proveedor.json"
+if os.path.exists(config_path):
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            config_manual = json.load(f)
+    except Exception as e:
+        print("Error al leer config_proveedor.json:", e)
+
 nombre_detectado, codigo_detectado = detectar_nombre_y_codigo(texto_pdf)
+
+# Sobrescribir con valores manuales si se pasaron desde la interfaz
+if config_manual.get("nombre_comled"):
+    nombre_detectado = config_manual["nombre_comled"]
+if config_manual.get("codigo_comled"):
+    codigo_detectado = config_manual["codigo_comled"]
 
 print("Nombre detectado:", nombre_detectado)
 print("Código detectado:", codigo_detectado)
@@ -166,6 +182,10 @@ except Exception as e:
 if nombre_detectado != "-":
     datos["nombre_producto"] = nombre_detectado
 datos["codigo_comled"] = codigo_detectado
+
+# Sobrescribir instalación si el usuario especificó una manualmente
+if config_manual.get("instalacion_manual"):
+    datos["instalacion"] = config_manual["instalacion_manual"]
 
 instalacion = datos.get("instalacion", "").lower()
 descripcion = datos.get("descripcion_luminaria", "").lower()

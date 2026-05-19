@@ -164,10 +164,75 @@ fileInput.addEventListener("change", () => {
     }
 });
 
+function autoDetectFromFilename(filename) {
+    // Quitar la extensión
+    const nameWithoutExt = filename.replace(/\.[^/.]+$/, "");
+    
+    // Intentar buscar el código de 5-6 dígitos (opcionalmente precedido por CL)
+    let code = "";
+    const codeMatch = nameWithoutExt.match(/CL\s*[-–]?\s*(\d+)/i) || nameWithoutExt.match(/\b(\d{5,6})\b/);
+    if (codeMatch) {
+        code = codeMatch[1];
+    }
+    
+    // Intentar buscar el nombre de la luminaria
+    let name = "";
+    // Separar por guiones
+    const parts = nameWithoutExt.split(/[-–]/);
+    if (parts.length >= 3) {
+        // Formato típico: ET CL - 022211 MENUT - 12W
+        const middlePart = parts[1].trim();
+        if (code && middlePart.includes(code)) {
+            name = middlePart.replace(code, "").trim();
+        } else {
+            name = middlePart;
+        }
+    } else if (parts.length === 2) {
+        const left = parts[0].trim();
+        const right = parts[1].trim();
+        if (code && right.includes(code)) {
+            name = right.replace(code, "").trim();
+        } else if (code && left.includes(code)) {
+            name = left.replace(code, "").trim();
+        } else {
+            name = right;
+        }
+    } else {
+        if (code) {
+            name = nameWithoutExt.replace(code, "").replace(/CL/i, "").replace(/ET/i, "").replace(/[-–]/g, "").trim();
+        }
+    }
+    
+    // Limpiar potencias (ej. 12W, 15W) y palabras clave de la descripción del nombre
+    if (name) {
+        name = name.replace(/\b\d+W\b/i, "")
+                   .replace(/CL/i, "")
+                   .replace(/ET/i, "")
+                   .replace(/[-–]/g, "")
+                   .replace(/\s+/g, " ")
+                   .trim();
+    }
+    
+    return { name, code };
+}
+
 function handleFileSelection(file) {
     selectedFile = file;
     fileNameDisplay.innerHTML = `<span class="text-brand-600 dark:text-brand-400 font-bold">${file.name}</span>`;
     dropzone.classList.add("border-brand-500/50", "bg-brand-500/5");
+    
+    // Pre-rellenar automáticamente nombre y código si se detectan
+    const detected = autoDetectFromFilename(file.name);
+    if (detected.name) {
+        document.getElementById("nombreInput").value = detected.name;
+    } else {
+        document.getElementById("nombreInput").value = "";
+    }
+    if (detected.code) {
+        document.getElementById("codigoInput").value = detected.code;
+    } else {
+        document.getElementById("codigoInput").value = "";
+    }
 }
 
 // Iniciar Extracción
