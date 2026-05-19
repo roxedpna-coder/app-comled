@@ -36,7 +36,6 @@ os.makedirs(SALIDAS_DIR, exist_ok=True)
 # Servir estáticos (imágenes y archivos PDF de salida)
 app.mount("/api/imagenes", StaticFiles(directory=IMAGENES_DIR), name="imagenes")
 app.mount("/api/salidas", StaticFiles(directory=SALIDAS_DIR), name="salidas")
-app.mount("/", StaticFiles(directory=os.path.join(BASE_DIR, "frontend"), html=True), name="frontend")
 
 
 @app.get("/api/ping")
@@ -438,6 +437,9 @@ def open_output_folder():
         return {"status": "success", "message": "Carpeta de salidas abierta"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"No se pudo abrir la carpeta: {str(e)}")
+
+
+app.mount("/", StaticFiles(directory=os.path.join(BASE_DIR, "frontend"), html=True), name="frontend")
 
 
 if __name__ == "__main__":
