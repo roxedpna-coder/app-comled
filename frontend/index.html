@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COM.LED - Creador de Fichas Técnicas</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef8ff',
+                            100: '#d8efff',
+                            200: '#b9e3ff',
+                            300: '#89d2ff',
+                            400: '#52b9ff',
+                            500: '#2a9cff',
+                            600: '#147eff',
+                            700: '#0a65e6',
+                            800: '#0f52b9',
+                            900: '#134795',
+                            950: '#0b1b3d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Estilos de scrollbar premium */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        /* Glassmorphism */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Animaciones */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+        .glow-effect {
+            animation: pulse-glow 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen font-sans transition-colors duration-300 antialiased">
+    
+    <!-- Barra Superior -->
+    <header class="sticky top-0 z-50 w-full glass-panel border-b transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <!-- Logo COM.LED dinámico en SVG -->
+                <svg class="w-8 h-8 text-brand-600 dark:text-brand-400" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="8" stroke-dasharray="200 40" class="glow-effect"/>
+                    <path d="M40 35L65 50L40 65V35Z" fill="currentColor"/>
+                </svg>
+                <div class="flex flex-col">
+                    <span class="font-extrabold text-lg tracking-wider bg-gradient-to-r from-brand-600 to-cyan-500 dark:from-brand-400 dark:to-cyan-300 bg-clip-text text-transparent">COM.LED</span>
+                    <span class="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500">Datasheet Engine</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <!-- Indicador de conexión local -->
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    Servidor Local Seguro
+                </div>
+                
+                <!-- Toggle de Modo Claro/Oscuro -->
+                <button id="themeToggle" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-200/50 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-300/30 dark:border-slate-700/30 transition-all">
+                    <i class="fa-solid fa-moon text-slate-700 dark:hidden text-lg"></i>
+                    <i class="fa-solid fa-sun hidden dark:block text-amber-400 text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <!-- Selector de Modo / Flujo -->
+        <div class="max-w-3xl mx-auto mb-8">
+            <div class="flex p-1 bg-slate-200/50 dark:bg-slate-900/50 rounded-xl border border-slate-300/20 dark:border-slate-800/50">
+                <button id="tabProveedor" class="flex-1 py-2.5 text-xs md:text-sm font-semibold rounded-lg transition-all bg-white dark:bg-slate-800 shadow-md text-brand-600 dark:text-brand-400">
+                    <i class="fa-solid fa-store mr-1.5"></i> Ficha desde Proveedor
+                </button>
+                <button id="tabEstandar" class="flex-1 py-2.5 text-xs md:text-sm font-semibold rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
+                    <i class="fa-solid fa-file-circle-check mr-1.5"></i> Ficha Estándar COM.LED
+                </button>
+                <button id="tabModificar" class="flex-1 py-2.5 text-xs md:text-sm font-semibold rounded-lg transition-all text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
+                    <i class="fa-solid fa-file-pen mr-1.5"></i> Modificar Ficha Existente
+                </button>
+            </div>
+        </div>
+        
+        <!-- PANTALLA 1: CARGA DE ARCHIVO -->
+        <section id="uploadSection" class="space-y-8 max-w-3xl mx-auto">
+            <div class="text-center space-y-3">
+                <h1 id="uploadTitle" class="text-3xl md:text-4xl font-extrabold tracking-tight">Crear Ficha Técnica desde Proveedor</h1>
+                <p id="uploadSubtitle" class="text-slate-500 dark:text-slate-400 text-sm md:text-base">Sube un catálogo PDF o una captura de pantalla del producto y extrae la información técnica de forma local.</p>
+            </div>
+
+            <!-- Panel de Carga -->
+            <div class="glass-panel rounded-2xl p-8 shadow-xl space-y-6">
+                <!-- Dropzone de archivo -->
+                <div id="dropzone" class="border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-brand-500 dark:hover:border-brand-500 rounded-xl p-10 flex flex-col items-center justify-center gap-4 cursor-pointer transition-all bg-slate-100/20 dark:bg-slate-900/10 group">
+                    <input type="file" id="fileInput" class="hidden" accept=".pdf,.png,.jpg,.jpeg">
+                    <div class="w-16 h-16 rounded-full bg-brand-500/10 flex items-center justify-center text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-semibold text-base" id="fileNameDisplay">Arrastra y suelta tu archivo aquí</p>
+                        <p class="text-xs text-slate-400 mt-1">Soporta PDF, PNG, JPG o JPEG (Máx. 30MB)</p>
+                    </div>
+                    <button type="button" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-semibold rounded-lg transition-colors">Seleccionar Archivo</button>
+                </div>
+
+                <!-- Parámetros opcionales -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Nombre de Luminaria</label>
+                        <input type="text" id="nombreInput" placeholder="Ej: Hola, Acer..." class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300/30 dark:border-slate-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Código COM.LED</label>
+                        <input type="text" id="codigoInput" placeholder="Ej: 111111" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300/30 dark:border-slate-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tipo Instalación</label>
+                        <select id="instalacionInput" class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300/30 dark:border-slate-800 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-brand-500">
+                            <option value="">Auto-detectar con IA</option>
+                            <option value="empotrada">Empotrada / Downlight</option>
+                            <option value="carril">De Carril</option>
+                            <option value="superficie">De Superficie</option>
+                            <option value="colgante">Colgante / Suspendida</option>
+                            <option value="pared">De Pared / Aplique</option>
+                            <option value="lineal">Lineal / Perfil</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Botón de Envío -->
+                <button id="btnExtract" class="w-full py-3.5 bg-gradient-to-r from-brand-600 to-cyan-600 hover:from-brand-500 hover:to-cyan-500 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-brand-500/20 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    Iniciar Extracción Inteligente
+                </button>
+            </div>
+        </section>
+
+        <!-- PANTALLA 2: PROGRESO Y PASOS (STEPPER) -->
+        <section id="progressSection" class="hidden max-w-2xl mx-auto mt-12 space-y-8">
+            <div class="text-center space-y-2">
+                <div class="inline-block p-4 rounded-full bg-brand-500/10 text-brand-500 dark:text-brand-400 animate-bounce mb-2">
+                    <i class="fa-solid fa-gears text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold">Procesando Catálogo</h2>
+                <p class="text-slate-400 text-sm">Ejecutando algoritmos locales de Visión por Computador e IA...</p>
+            </div>
+
+            <!-- Tarjeta de progreso -->
+            <div class="glass-panel rounded-2xl p-6 shadow-xl space-y-6">
+                <!-- Barra de carga general -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-xs font-semibold">
+                        <span id="currentStepName">Iniciando...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div id="progressBar" class="h-full bg-gradient-to-r from-brand-500 to-cyan-400 w-0 transition-all duration-500 rounded-full"></div>
+                    </div>
+                </div>
+
+                <!-- Lista de pasos (Stepper) -->
+                <div class="space-y-4 pt-2">
+                    <div class="step-item flex items-start gap-4 text-slate-400" id="step1">
+                        <div class="step-icon w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold shrink-0">1</div>
+                        <div class="text-sm font-medium">Extrayendo datos técnicos con OpenAI Vision...</div>
+                    </div>
+                    <div class="step-item flex items-start gap-4 text-slate-400" id="step2">
+                        <div class="step-icon w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold shrink-0">2</div>
+                        <div class="text-sm font-medium">Buscando imágenes de la luminaria y cotas...</div>
+                    </div>
+                    <div class="step-item flex items-start gap-4 text-slate-400" id="step3">
+                        <div class="step-icon w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold shrink-0">3</div>
+                        <div class="text-sm font-medium">Validando integridad y calidad de la extracción...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANTALLA 3: CENTRO DE VALIDACIÓN Y CONTROL -->
+        <section id="validationSection" class="hidden space-y-6 mt-4">
+            <!-- Encabezado de sección -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200/50 dark:border-slate-800/50 pb-4">
+                <div>
+                    <h2 class="text-2xl font-extrabold">Datos Extraídos de la Luminaria</h2>
+                    <p class="text-slate-400 text-xs">Revisa la tabla técnica y el recorte de imágenes antes de la generación definitiva.</p>
+                </div>
+                <button id="btnBackToUpload" class="px-3 py-1.5 bg-slate-200/50 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-semibold rounded-lg transition-colors border border-slate-300/30 dark:border-slate-700/30">
+                    <i class="fa-solid fa-arrow-left mr-1"></i> Volver a Subir
+                </button>
+            </div>
+
+            <!-- Banner de Alerta de Imágenes Faltantes -->
+            <div id="missingImagesAlert" class="hidden p-4 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-xl flex items-start gap-3">
+                <i class="fa-solid fa-circle-exclamation text-xl shrink-0 mt-0.5"></i>
+                <div class="text-xs">
+                    <p class="font-bold">¡Atención! Imágenes incompletas</p>
+                    <p class="mt-0.5 opacity-90" id="missingImagesText">No se ha podido detectar de forma automática la foto de la luminaria o el plano de cotas. Por favor, cárgalos manualmente en el panel lateral derecho.</p>
+                </div>
+            </div>
+
+            <!-- Grid Principal -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                <!-- Columna Izquierda: Editor de Datos Técnicos (7/12) -->
+                <div class="lg:col-span-7 space-y-4">
+                    <div class="glass-panel rounded-2xl p-5 shadow-lg">
+                        <div class="flex items-center justify-between border-b border-slate-200/50 dark:border-slate-800/50 pb-3 mb-4">
+                            <span class="font-bold text-sm tracking-wider uppercase text-slate-400">Campos Técnicos</span>
+                            <span class="text-xs px-2 py-0.5 rounded bg-brand-500/10 text-brand-500 font-semibold border border-brand-500/25">Editable</span>
+                        </div>
+                        
+                        <!-- Formulario de Campos de Datos -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="dataFormContainer">
+                            <!-- Inyectado dinámicamente por app.js -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Gestor de Imágenes (5/12) -->
+                <div class="lg:col-span-5 space-y-6">
+                    <!-- Tarjeta: Foto del Producto (Luminaria) -->
+                    <div class="glass-panel rounded-2xl p-5 shadow-lg space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-200/50 dark:border-slate-800/50 pb-3">
+                            <h3 class="font-bold text-sm text-slate-400 uppercase tracking-wider">Imagen del Producto (Luminaria)</h3>
+                            <div class="flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded" id="badgeProducto">
+                                <!-- Badge de Estado -->
+                            </div>
+                        </div>
+                        
+                        <!-- Contenedor Visualizador -->
+                        <div class="relative w-full aspect-video rounded-xl bg-white border border-slate-200 dark:border-slate-800 flex items-center justify-center overflow-hidden p-4 group">
+                            <img id="imgProductoPreview" src="" alt="Luminaria" class="max-w-full max-h-full object-contain">
+                            <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <label for="fileProductUpload" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-lg cursor-pointer transition-all shadow-md">
+                                    <i class="fa-solid fa-image-portrait mr-1"></i> Reemplazar Foto
+                                </label>
+                                <input type="file" id="fileProductUpload" class="hidden" accept=".png,.jpg,.jpeg">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta: Plano de Dimensiones / Cotas -->
+                    <div class="glass-panel rounded-2xl p-5 shadow-lg space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-200/50 dark:border-slate-800/50 pb-3">
+                            <h3 class="font-bold text-sm text-slate-400 uppercase tracking-wider">Plano de Dimensiones / Cotas</h3>
+                            <div class="flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded" id="badgeDimensiones">
+                                <!-- Badge de Estado -->
+                            </div>
+                        </div>
+                        
+                        <!-- Contenedor Visualizador -->
+                        <div class="relative w-full aspect-video rounded-xl bg-white border border-slate-200 dark:border-slate-800 flex items-center justify-center overflow-hidden p-4 group">
+                            <img id="imgDimensionesPreview" src="" alt="Dimensiones" class="max-w-full max-h-full object-contain">
+                            <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <label for="fileDimensionsUpload" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-lg cursor-pointer transition-all shadow-md">
+                                    <i class="fa-solid fa-ruler-combined mr-1"></i> Reemplazar Dibujo
+                                </label>
+                                <input type="file" id="fileDimensionsUpload" class="hidden" accept=".png,.jpg,.jpeg">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Panel de Generación Final -->
+            <div class="glass-panel rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
+                <div class="space-y-1 text-center md:text-left">
+                    <p class="font-bold text-lg">¿Todo correcto?</p>
+                    <p class="text-xs text-slate-400">Pulsa el botón para limpiar el fondo, procesar la IA de imagen y compilar el PowerPoint y PDF final.</p>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <button id="btnCompile" class="flex-1 sm:flex-none px-6 py-3.5 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-powerpoint"></i> Generar Ficha Técnica
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANTALLA 4: RESULTADO EXITOSO -->
+        <section id="successSection" class="hidden max-w-xl mx-auto mt-12 space-y-8">
+            <div class="glass-panel rounded-2xl p-8 shadow-2xl text-center space-y-6">
+                <!-- Check de éxito animado -->
+                <div class="w-20 h-20 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-4xl mx-auto shadow-inner border border-emerald-500/20">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                
+                <div class="space-y-2">
+                    <h2 class="text-3xl font-extrabold tracking-tight">Ficha Generada</h2>
+                    <p class="text-slate-400 text-sm">El PowerPoint y el PDF se han creado correctamente en la carpeta de salidas.</p>
+                </div>
+
+                <!-- Acciones -->
+                <div class="space-y-3 pt-2">
+                    <button id="btnOpenFolder" class="w-full py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-folder-open"></i> Abrir Carpeta de Salidas
+                    </button>
+                    <a id="btnDownloadPdf" href="#" target="_blank" class="w-full py-3 bg-gradient-to-r from-brand-600 to-cyan-500 hover:from-brand-500 hover:to-cyan-400 text-white text-sm font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-pdf"></i> Previsualizar / Descargar PDF
+                    </a>
+                </div>
+
+                <div class="border-t border-slate-200/50 dark:border-slate-800/50 pt-4">
+                    <button id="btnRestart" class="text-xs text-brand-600 dark:text-brand-400 font-semibold hover:underline">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> Crear otra ficha nueva
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="py-8 text-center text-[10px] uppercase font-bold tracking-widest text-slate-400/50 border-t border-slate-200/20 mt-16 transition-colors">
+        COM.LED - Creador de Fichas Técnicas local v1.0.0
+    </footer>
+
+    <!-- Script de control Reactivo -->
+    <script src="app.js"></script>
+</body>
+</html>
