@@ -172,7 +172,10 @@ async def upload_catalog(
         for filename in os.listdir(PDFS_DIR):
             file_path = os.path.join(PDFS_DIR, filename)
             if os.path.isfile(file_path) and not filename.startswith("."):
-                os.remove(file_path)
+                try:
+                    os.remove(file_path)
+                except Exception as de:
+                    print(f"No se pudo eliminar PDF antiguo {filename}: {de}")
 
         # 2. Guardar el archivo subido
         file_ext = os.path.splitext(file.filename)[1]
@@ -191,24 +194,36 @@ async def upload_catalog(
             config["instalacion_manual"] = instalacion_manual.strip()
 
         config_path = os.path.join(ENTRADAS_DIR, "config_proveedor.json")
-        with open(config_path, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=2, ensure_ascii=False)
+        try:
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(config, f, indent=2, ensure_ascii=False)
+        except Exception as ce:
+            print(f"No se pudo escribir config_proveedor.json: {ce}")
 
         # 4. Limpiar cualquier imagen manual antigua para una nueva luminaria
         manual_dir = os.path.join(IMAGENES_DIR, "manual")
         for f in os.listdir(manual_dir):
             fp = os.path.join(manual_dir, f)
             if os.path.isfile(fp) and not f.startswith("."):
-                os.remove(fp)
+                try:
+                    os.remove(fp)
+                except Exception as de:
+                    print(f"No se pudo eliminar imagen manual antigua {f}: {de}")
 
         # También limpiar estado_img.json viejo y estado.json viejo
         estado_img_path = os.path.join(ENTRADAS_DIR, "estado_img.json")
         if os.path.exists(estado_img_path):
-            os.remove(estado_img_path)
+            try:
+                os.remove(estado_img_path)
+            except Exception as de:
+                print(f"No se pudo eliminar estado_img.json: {de}")
             
         estado_path = os.path.join(ENTRADAS_DIR, "estado.json")
         if os.path.exists(estado_path):
-            os.remove(estado_path)
+            try:
+                os.remove(estado_path)
+            except Exception as de:
+                print(f"No se pudo eliminar estado.json: {de}")
 
         return {
             "status": "success",
