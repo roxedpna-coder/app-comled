@@ -293,47 +293,63 @@ btnExtract.addEventListener("click", async () => {
         // Paso 1 visual activo
         setStepActive("step1");
 
-        // 3. Lanzar pipeline de extracción en el backend
-        updateProgress(35, "Extrayendo datos técnicos...");
-        setStepDone("step1");
-        setStepActive("step2");
+        let progressVal = 10;
+        const progressInterval = setInterval(() => {
+            if (progressVal < 90) {
+                progressVal += Math.floor(Math.random() * 4) + 2;
+                if (progressVal > 90) progressVal = 90;
+                
+                if (progressVal > 30 && progressVal <= 65) {
+                    setStepDone("step1");
+                    setStepActive("step2");
+                    updateProgress(progressVal, "Analizando e identificando imágenes...");
+                } else if (progressVal > 65) {
+                    setStepDone("step2");
+                    setStepActive("step3");
+                    updateProgress(progressVal, "Validando estructura de datos técnicos...");
+                } else {
+                    updateProgress(progressVal, "Leyendo documento y extrayendo información...");
+                }
+            }
+        }, 550);
 
-        const extractRes = await fetch(`${API_BASE}/extract?mode=${currentMode}`, {
-            method: "POST"
-        });
+        try {
+            const extractRes = await fetch(`${API_BASE}/extract?mode=${currentMode}`, {
+                method: "POST"
+            });
 
-        if (!extractRes.ok) {
-            const errData = await extractRes.json();
-            throw new Error(errData.detail || "Error durante la extracción de datos.");
-        }
+            clearInterval(progressInterval);
 
-        const data = await extractRes.json();
-        extractedData = data.datos;
-        extractionStatus = data.estado;
+            if (!extractRes.ok) {
+                const errData = await extractRes.json();
+                throw new Error(errData.detail || "Error durante la extracción de datos.");
+            }
 
-        setStepDone("step2");
-        setStepActive("step3");
-        updateProgress(80, "Validando datos e imágenes...");
+            const data = await extractRes.json();
+            extractedData = data.datos;
+            extractionStatus = data.estado;
 
-        // Finalizar barra de carga
-        updateProgress(100, "Completado");
-        setStepDone("step3");
+            setStepDone("step1");
+            setStepDone("step2");
+            setStepDone("step3");
+            updateProgress(100, "Extracción completada con éxito");
 
-        // Esperar un breve instante para mostrar finalización
-        setTimeout(() => {
-            loadValidationPanel();
-            showSection("validation");
-            // Reactivar botón de carga por si vuelve
+            // Esperar un breve instante para mostrar finalización
+            setTimeout(() => {
+                loadValidationPanel();
+                showSection("validation");
+                // Reactivar botón de carga por si vuelve
+                btnExtract.disabled = false;
+                btnExtract.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Iniciar Extracción Inteligente';
+            }, 800);
+
+        } catch (error) {
+            clearInterval(progressInterval);
+            alert(`Error: ${error.message}`);
+            showSection("upload");
             btnExtract.disabled = false;
             btnExtract.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Iniciar Extracción Inteligente';
-        }, 800);
-
-    } catch (error) {
-        alert(`Error: ${error.message}`);
-        showSection("upload");
-        btnExtract.disabled = false;
-        btnExtract.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Iniciar Extracción Inteligente';
-    }
+        }
 });
 
 // ==========================================
@@ -578,43 +594,67 @@ btnCompile.addEventListener("click", async () => {
 
         // Ejecutar compilación
         setStepActive("step1");
-        updateProgress(20, "Compilando ficha técnica...");
-        
-        // Llamar API de compilación (corre los pasos 4 a 10)
-        const compileRes = await fetch(`${API_BASE}/generate?mode=${currentMode}`, {
-            method: "POST"
-        });
+        updateProgress(10, "Optimizando imágenes de la luminaria...");
 
-        if (!compileRes.ok) {
-            const errData = await compileRes.json();
-            throw new Error(errData.detail || "Error al compilar la ficha.");
-        }
+        let progressVal = 10;
+        const progressInterval = setInterval(() => {
+            if (progressVal < 95) {
+                progressVal += Math.floor(Math.random() * 4) + 1;
+                if (progressVal > 95) progressVal = 95;
+                
+                if (progressVal > 30 && progressVal <= 65) {
+                    setStepDone("step1");
+                    setStepActive("step2");
+                    updateProgress(progressVal, currentMode === "modificar" ? "Procesando fotometría y ópticas..." : "Generando gráficos de fotometría...");
+                } else if (progressVal > 65) {
+                    setStepDone("step2");
+                    setStepActive("step3");
+                    updateProgress(progressVal, currentMode === "modificar" ? "Actualizando PowerPoint y exportando..." : "Compilando plantilla PowerPoint y PDF...");
+                } else {
+                    updateProgress(progressVal, currentMode === "modificar" ? "Inicializando compilación..." : "Optimizando imágenes y aplicando recorte IA...");
+                }
+            }
+        }, 750);
 
-        const buildData = await compileRes.json();
+        try {
+            // Llamar API de compilación (corre los pasos 4 a 10)
+            const compileRes = await fetch(`${API_BASE}/generate?mode=${currentMode}`, {
+                method: "POST"
+            });
 
-        setStepDone("step1");
-        setStepDone("step2");
-        setStepDone("step3");
-        updateProgress(100, "Ficha generada");
+            clearInterval(progressInterval);
 
-        // 3. Mostrar pantalla de éxito
-        setTimeout(() => {
-            showSection("success");
-            
-            // Configurar botones de descarga y apertura
-            const btnDownloadPdf = document.getElementById("btnDownloadPdf");
-            btnDownloadPdf.href = `http://127.0.0.1:8000${buildData.pdf_url}`;
-            
+            if (!compileRes.ok) {
+                const errData = await compileRes.json();
+                throw new Error(errData.detail || "Error al compilar la ficha.");
+            }
+
+            const buildData = await compileRes.json();
+
+            setStepDone("step1");
+            setStepDone("step2");
+            setStepDone("step3");
+            updateProgress(100, "Ficha generada exitosamente");
+
+            // 3. Mostrar pantalla de éxito
+            setTimeout(() => {
+                showSection("success");
+                
+                // Configurar botones de descarga y apertura
+                const btnDownloadPdf = document.getElementById("btnDownloadPdf");
+                btnDownloadPdf.href = `http://127.0.0.1:8000${buildData.pdf_url}`;
+                
+                btnCompile.disabled = false;
+                btnCompile.innerHTML = '<i class="fa-solid fa-file-powerpoint"></i> Generar Ficha Técnica';
+            }, 800);
+
+        } catch (e) {
+            clearInterval(progressInterval);
+            alert(`Error al compilar PowerPoint: ${e.message}`);
+            showSection("validation");
             btnCompile.disabled = false;
             btnCompile.innerHTML = '<i class="fa-solid fa-file-powerpoint"></i> Generar Ficha Técnica';
-        }, 800);
-
-    } catch (e) {
-        alert(`Error al compilar PowerPoint: ${e.message}`);
-        showSection("validation");
-        btnCompile.disabled = false;
-        btnCompile.innerHTML = '<i class="fa-solid fa-file-powerpoint"></i> Generar Ficha Técnica';
-    }
+        }
 });
 
 // ==========================================
