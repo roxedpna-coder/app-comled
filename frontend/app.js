@@ -497,6 +497,14 @@ async function uploadManualImage(type, file) {
     const formData = new FormData();
     formData.append("file", file);
 
+    // Indicador visual de carga en el badge correspondiente
+    const badgeId = type === "producto" ? "badgeProducto" : "badgeDimensiones";
+    const badgeElement = document.getElementById(badgeId);
+    if (badgeElement) {
+        badgeElement.className = "flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20";
+        badgeElement.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Subiendo...';
+    }
+
     try {
         const res = await fetch(`${API_BASE}/upload-manual-image?type=${type}`, {
             method: "POST",
@@ -517,6 +525,8 @@ async function uploadManualImage(type, file) {
         
     } catch (e) {
         alert(`Error al subir imagen de contingencia: ${e.message}`);
+        // Forzar actualización del panel para restaurar el estado visual previo si falló
+        updateImagesPanel();
     }
 }
 
