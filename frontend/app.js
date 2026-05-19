@@ -63,43 +63,51 @@ if (savedTheme === "dark") {
 }
 
 // Validar e inicializar logos personalizados
-let hasCustomLogo = false;
+let logoMode = null; // 'theme-aware' o 'single'
 const customLogoEl = document.getElementById("customBrandingLogo");
 const defaultBrandingEl = document.getElementById("defaultBranding");
 
 function updateBrandingLogo() {
-    if (!hasCustomLogo) return;
-    const isDark = htmlEl.classList.contains("dark");
-    if (isDark) {
-        customLogoEl.src = "logo-dark.png";
-    } else {
-        customLogoEl.src = "logo-light.png";
+    if (!logoMode) return;
+    if (logoMode === "theme-aware") {
+        const isDark = htmlEl.classList.contains("dark");
+        customLogoEl.src = isDark ? "logo-dark.png" : "logo-light.png";
+    } else if (logoMode === "single") {
+        customLogoEl.src = "logo.png";
     }
 }
 
-// Probar carga de logo-dark.png o logo-light.png
-const logoTesterDark = new Image();
-logoTesterDark.src = "logo-dark.png";
-logoTesterDark.onload = function() {
-    hasCustomLogo = true;
+function showCustomLogo() {
     if (customLogoEl && defaultBrandingEl) {
         defaultBrandingEl.classList.add("hidden");
         customLogoEl.classList.remove("hidden");
         updateBrandingLogo();
     }
+}
+
+// Probar carga de logos (soporta logo-dark/light y el fallback clásico logo.png)
+const testLogoDark = new Image();
+testLogoDark.src = "logo-dark.png";
+testLogoDark.onload = function() {
+    logoMode = "theme-aware";
+    showCustomLogo();
 };
 
-const logoTesterLight = new Image();
-logoTesterLight.src = "logo-light.png";
-logoTesterLight.onload = function() {
-    if (!hasCustomLogo) {
-        hasCustomLogo = true;
-        if (customLogoEl && defaultBrandingEl) {
-            defaultBrandingEl.classList.add("hidden");
-            customLogoEl.classList.remove("hidden");
-            updateBrandingLogo();
-        }
-    }
+testLogoDark.onerror = function() {
+    const testLogoLight = new Image();
+    testLogoLight.src = "logo-light.png";
+    testLogoLight.onload = function() {
+        logoMode = "theme-aware";
+        showCustomLogo();
+    };
+    testLogoLight.onerror = function() {
+        const testLogoSingle = new Image();
+        testLogoSingle.src = "logo.png";
+        testLogoSingle.onload = function() {
+            logoMode = "single";
+            showCustomLogo();
+        };
+    };
 };
 
 themeToggle.addEventListener("click", () => {
