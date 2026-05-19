@@ -244,101 +244,87 @@ else:
 # -------------------------
 
 def recortar_dibujo_tecnico(imagen_path, salida_path):
-    img = Image.open(imagen_path).convert("RGB")
+    try:
+        img = Image.open(imagen_path).convert("RGB")
+        gris = img.convert("L")
+        arr = np.array(gris)
+        
+        mask = arr < 252
+        filas = np.where(mask.sum(axis=1) > 0)[0]
+        cols = np.where(mask.sum(axis=0) > 0)[0]
+        
+        if len(filas) == 0 or len(cols) == 0:
+            img.save(salida_path)
+            return
 
-    gris = img.convert("L")
-    arr = np.array(gris)
+        col_counts = mask.sum(axis=0)
+        columnas_activas = np.where(col_counts > 0)[0]
 
-    mask = arr < 225
+        grupos = []
+        if len(columnas_activas) > 0:
+            inicio = columnas_activas[0]
+            anterior = columnas_activas[0]
 
-    filas = np.where(mask.sum(axis=1) > 3)[0]
-    cols = np.where(mask.sum(axis=0) > 3)[0]
+            for c in columnas_activas[1:]:
+                # 200 píxeles es un margen seguro para agrupar las cotas con el dibujo en alta resolución
+                if c - anterior > 200:
+                    grupos.append((inicio, anterior))
+                    inicio = c
+                anterior = c
 
-    if len(filas) == 0 or len(cols) == 0:
-        img.save(salida_path)
-        return
+            grupos.append((inicio, anterior))
 
-    col_counts = mask.sum(axis=0)
-    columnas_activas = np.where(col_counts > 4)[0]
+        if grupos:
+            ancho_img = img.width
 
-    grupos = []
+            grupos_filtrados = [
+                g for g in grupos
+                if g[1] > ancho_img * 0.35
+            ]
 
-    if len(columnas_activas) > 0:
-        inicio = columnas_activas[0]
-        anterior = columnas_activas[0]
+            if not grupos_filtrados:
+                grupos_filtrados = grupos
 
-        for c in columnas_activas[1:]:
-            if c - anterior > 25:
-                grupos.append((inicio, anterior))
-                inicio = c
-            anterior = c
+            def score_grupo(g):
+                x0, x1 = g
+                ancho = x1 - x0
+                pixeles = col_counts[x0:x1].sum()
+                posicion = x1 / ancho_img
+                return pixeles + ancho * 10 + posicion * 500
 
-        grupos.append((inicio, anterior))
+            mejor_grupo = max(grupos_filtrados, key=score_grupo)
+            x0, x1 = mejor_grupo
 
-    if grupos:
-        ancho_img = img.width
+            margen_x = 45
+            x0 = max(x0 - margen_x, 0)
+            x1 = min(x1 + margen_x, img.width)
 
-        grupos_filtrados = [
-            g for g in grupos
-            if g[1] > ancho_img * 0.35
-        ]
+            submask = mask[:, x0:x1]
+            filas_sub = np.where(submask.sum(axis=1) > 0)[0]
 
-        if not grupos_filtrados:
-            grupos_filtrados = grupos
+            if len(filas_sub) > 0:
+                y0 = filas_sub[0]
+                y1 = filas_sub[-1]
+            else:
+                y0 = filas[0]
+                y1 = filas[-1]
 
-        def score_grupo(g):
-            x0, x1 = g
-            ancho = x1 - x0
-            pixeles = col_counts[x0:x1].sum()
-            posicion = x1 / ancho_img
-            return pixeles + ancho * 10 + posicion * 500
-
-        mejor_grupo = max(grupos_filtrados, key=score_grupo)
-
-        x0, x1 = mejor_grupo
-
-        margen_x = 80
-        x0 = max(x0 - margen_x, 0)
-        x1 = min(x1 + margen_x, img.width)
-
-        submask = mask[:, x0:x1]
-        filas_sub = np.where(submask.sum(axis=1) > 3)[0]
-
-        if len(filas_sub) > 0:
-            y0 = filas_sub[0]
-            y1 = filas_sub[-1]
         else:
+            x0 = cols[0]
+            x1 = cols[-1]
             y0 = filas[0]
             y1 = filas[-1]
 
-    else:
-        x0 = cols[0]
-        x1 = cols[-1]
-        y0 = filas[0]
-        y1 = filas[-1]
+        margen = 45
+        left = max(x0 - margen, 0)
+        top = max(y0 - margen, 0)
+        right = min(x1 + margen, img.width)
+        bottom = min(y1 + margen, img.height)
 
-    margen = 45
-
-    left = max(x0 - margen, 0)
-    top = max(y0 - margen, 0)
-    right = min(x1 + margen, img.width)
-    bottom = min(y1 + margen, img.height)
-
-    recorte = img.crop((left, top, right, bottom))
-
-    fondo = Image.new("RGB", recorte.size, (255, 255, 255))
-    diff = ImageChops.difference(recorte, fondo)
-    bbox = diff.getbbox()
-
-    if bbox:
-        left2 = max(bbox[0] - 25, 0)
-        top2 = max(bbox[1] - 25, 0)
-        right2 = min(bbox[2] + 25, recorte.width)
-        bottom2 = min(bbox[3] + 25, recorte.height)
-
-        recorte = recorte.crop((left2, top2, right2, bottom2))
-
-    recorte.save(salida_path)
+        recorte = img.crop((left, top, right, bottom))
+        recorte.save(salida_path)
+    except Exception as e:
+        print("Error recortando dibujo tecnico:", e)
 
 
 # -------------------------
@@ -385,7 +371,7 @@ else:
             bottom = y1 + page_height * 0.25
 
         rect_dimensiones = fitz.Rect(
-            page_width * 0.48,
+            page_width * 0.35,
             top,
             page_width * 0.98,
             bottom
@@ -393,7 +379,7 @@ else:
 
     else:
         rect_dimensiones = fitz.Rect(
-            page_width * 0.48,
+            page_width * 0.35,
             page_height * 0.23,
             page_width * 0.98,
             page_height * 0.52

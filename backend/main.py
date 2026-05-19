@@ -101,17 +101,49 @@ optica_grafico = datos.get("optica_grafico", "-")
 # REEMPLAZOS
 # -------------------------
 
-# Soporte de compatibilidad para plantillas antiguas/nuevas
-if "cct_resumido" not in datos:
-    datos["cct_resumido"] = datos.get("cct", "-")
-if "ip_resumido" not in datos:
-    datos["ip_resumido"] = datos.get("ip", "-")
-if "potencia_resumido" not in datos:
-    datos["potencia_resumido"] = datos.get("potencia", "-")
-if "flujo_resumido" not in datos:
-    datos["flujo_resumido"] = datos.get("flujo_luminoso", "-")
-if "eficacia_resumido" not in datos:
-    datos["eficacia_resumido"] = datos.get("eficacia_luminosa", "-")
+import re
+
+def resumir_ip(valor):
+    valor = str(valor).upper().strip()
+    if valor.count("IP") > 1:
+        partes = [p.strip() for p in valor.replace("&", "/").replace("-", "/").split("/")]
+        limpias = []
+        for p in partes:
+            num = re.sub(r"[^\d]", "", p)
+            if num: limpias.append(num)
+        if limpias:
+            return "IP" + "/".join(limpias)
+    return valor
+
+def resumir_rango(valor, sufijo=""):
+    valor = str(valor).strip()
+    numeros = re.findall(r"[\d]+", valor.replace(".", "").replace(",", ""))
+    if len(numeros) > 1:
+        nums = [int(n) for n in numeros if int(n) > 0]
+        if nums:
+            return f"{min(nums)}-{max(nums)}{sufijo}"
+    return valor
+
+# Soporte de compatibilidad para plantillas antiguas/nuevas y forzado de resumen gráfico
+val_cct = str(datos.get("cct_resumido", ""))
+if not val_cct or len(val_cct) > 15 or "/" in val_cct:
+    datos["cct_resumido"] = resumir_rango(datos.get("cct", "-"), "K")
+
+val_ip = str(datos.get("ip_resumido", ""))
+if not val_ip or len(val_ip) > 9 or "IP" in val_ip[3:]:
+    datos["ip_resumido"] = resumir_ip(datos.get("ip", "-"))
+
+val_pot = str(datos.get("potencia_resumido", ""))
+if not val_pot or len(val_pot) > 10 or "/" in val_pot:
+    datos["potencia_resumido"] = resumir_rango(datos.get("potencia", "-"), "W")
+
+val_flu = str(datos.get("flujo_resumido", ""))
+if not val_flu or len(val_flu) > 12 or "/" in val_flu:
+    datos["flujo_resumido"] = resumir_rango(datos.get("flujo_luminoso", "-"), "lm")
+
+val_efi = str(datos.get("eficacia_resumido", ""))
+if not val_efi or len(val_efi) > 12 or "/" in val_efi:
+    datos["eficacia_resumido"] = resumir_rango(datos.get("eficacia_luminosa", "-"), "lm/W")
 
 reemplazos = {}
 

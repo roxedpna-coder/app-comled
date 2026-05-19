@@ -1,2 +1,29 @@
 .env
-.env
+.DS_Store
+__pycache__/
+*.pyc
+node_modules/
+
+# Imágenes temporales o de salida
+imagenes/temp/
+imagenes/producto*.png
+imagenes/dimensiones.png
+imagenes/fotometria_generada.png
+
+# Archivos de entrada/salida transitorios
+entradas/datos.json
+entradas/estado.json
+entradas/estado_img.json
+entradas/config_proveedor.json
+pdfs/*
+!pdfs/.gitkeep
+
+# Carpetas de salida
+salidas/*
+!salidas/.gitkeep
+
+# Scripts de prueba temporales
+test_*.py
+scripts_pruebas/
+copy_to_artifacts.py
+inspect_*.py

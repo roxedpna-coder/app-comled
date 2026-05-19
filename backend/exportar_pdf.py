@@ -129,6 +129,22 @@ os.rename(
 os.remove(pptx_path)
 
 # -------------------------
+# INYECTAR METADATOS INVISIBLES
+# -------------------------
+
+try:
+    import fitz
+    doc = fitz.open(pdf_final)
+    meta = doc.metadata
+    meta["subject"] = json.dumps(datos, ensure_ascii=False)
+    doc.set_metadata(meta)
+    doc.saveIncr()
+    doc.close()
+    print("Metadatos inyectados correctamente.")
+except Exception as e:
+    print(f"Advertencia: No se pudieron inyectar metadatos ({e})")
+
+# -------------------------
 # FINAL
 # -------------------------
 

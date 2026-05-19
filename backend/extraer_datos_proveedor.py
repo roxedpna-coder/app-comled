@@ -8,23 +8,31 @@ import glob
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-pdfs_encontrados = glob.glob("pdfs/*.pdf")
+pdfs_encontrados = glob.glob("pdfs/*.pdf") + glob.glob("pdfs/*.png") + glob.glob("pdfs/*.jpg") + glob.glob("pdfs/*.jpeg")
 
 if not pdfs_encontrados:
-    print("No se encontró ningún PDF en la carpeta pdfs")
-    exit()
+    print("ERROR CRÍTICO: No se encontró ningún archivo (.pdf, .png, .jpg) en la carpeta 'pdfs/'.")
+    print("Por favor, asegúrate de colocar el PDF del proveedor en la carpeta correcta antes de ejecutar.")
+    exit(1)
 
 pdf_path = max(pdfs_encontrados, key=os.path.getmtime)
 print("PDF más reciente seleccionado (Proveedor):", pdf_path)
 
 texto_pdf = ""
+base64_image = None
+es_imagen = pdf_path.lower().endswith(('.png', '.jpg', '.jpeg'))
 
-doc = fitz.open(pdf_path)
-for pagina in doc:
-    texto_pdf += pagina.get_text()
-doc.close()
-
-print("PDF leído correctamente")
+if es_imagen:
+    print("Captura de pantalla detectada. Activando OpenAI Vision...")
+    import base64
+    with open(pdf_path, "rb") as image_file:
+        base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+else:
+    doc = fitz.open(pdf_path)
+    for pagina in doc:
+        texto_pdf += pagina.get_text()
+    doc.close()
+    print("PDF leído correctamente")
 
 # Cargar configuracion opcional ingresada por el usuario (si existe)
 nombre_deseado = ""
@@ -142,9 +150,25 @@ img_fotometria
 img_instalacion
 """
 
+if base64_image:
+    mensajes = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
+                }
+            ]
+        }
+    ]
+else:
+    mensajes = [{"role": "user", "content": prompt}]
+
 respuesta = client.chat.completions.create(
     model="gpt-4o-mini",
-    messages=[{"role": "user", "content": prompt}]
+    messages=mensajes
 )
 
 contenido = respuesta.choices[0].message.content
@@ -152,6 +176,35 @@ contenido = contenido.replace("```json", "").replace("```", "").strip()
 
 try:
     datos = json.loads(contenido)
+    
+    # 1. FORZAR NOMBRE Y CÓDIGO MANUALES (Evita alucinaciones de la IA)
+    if nombre_deseado:
+        datos["nombre_producto"] = nombre_deseado
+    if codigo_deseado:
+        datos["codigo_comled"] = codigo_deseado
+        
+    # 2. TRUNCAR TEXTOS EXCESIVAMENTE LARGOS EN LA TABLA TÉCNICA
+    # Si las listas de versiones son muy largas, la fuente en PPTX se aplasta
+    import re
+    def aplicar_rango_si_largo(clave_original, clave_resumen, sufijo=""):
+        val = str(datos.get(clave_original, ""))
+        if len(val) > 25 and "/" in val:
+            # Si hay una versión resumida generada por la IA que sea válida, usarla
+            val_res = str(datos.get(clave_resumen, ""))
+            if val_res and len(val_res) < 20 and "/" not in val_res:
+                datos[clave_original] = val_res
+            else:
+                # Truncamiento matemático de emergencia
+                numeros = re.findall(r"[\d]+", val.replace(".", "").replace(",", ""))
+                nums = [int(n) for n in numeros if int(n) > 0]
+                if nums:
+                    datos[clave_original] = f"{min(nums)}-{max(nums)}{sufijo}"
+
+    aplicar_rango_si_largo("potencia", "potencia_resumido", "W")
+    aplicar_rango_si_largo("flujo_luminoso", "flujo_resumido", "lm")
+    aplicar_rango_si_largo("eficacia_luminosa", "eficacia_resumido", "lm/W")
+    aplicar_rango_si_largo("cct", "cct_resumido", "K")
+
 except Exception as e:
     print("ERROR AL LEER JSON:")
     print(e)

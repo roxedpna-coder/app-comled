@@ -41,6 +41,14 @@ def imagen_es_clara(img):
 
 def recortar_fondo_claro(img):
     img_rgba = img.convert("RGBA")
+    
+    # Si la imagen ya tiene fondo transparente (gracias a rembg en el paso 4),
+    # simplemente la devolvemos sin aplicar filtros de color destructivos
+    arr = np.array(img_rgba)
+    alpha = arr[:, :, 3]
+    if np.any(alpha < 50):
+        print("Producto con fondo transparente detectado. Omitiendo limpieza destructiva.")
+        return img_rgba
 
     if imagen_es_clara(img_rgba):
         print("Producto claro detectado: limpieza suave de fondo")

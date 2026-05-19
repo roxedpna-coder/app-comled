@@ -66,6 +66,15 @@ nombre_detectado, codigo_detectado = detectar_nombre_y_codigo(texto_pdf)
 print("Nombre detectado:", nombre_detectado)
 print("Código detectado:", codigo_detectado)
 
+instrucciones_nombre = f"""
+- nombre_producto:
+  Usa EXACTAMENTE este valor: {nombre_detectado}
+""" if nombre_detectado != "-" else """
+- nombre_producto:
+  Extrae el nombre comercial CORTO de la luminaria (Ej: "TUB 88", "DOWNLIGHT", "CARRIL").
+  MÁXIMO 4 PALABRAS. NUNCA incluyas frases largas ni la descripción del producto.
+"""
+
 prompt = f"""
 Actúa como extractor técnico COM.LED.
 
@@ -81,9 +90,7 @@ TEXTO DEL PDF:
 
 REGLAS:
 
-- nombre_producto:
-  Usa EXACTAMENTE este valor:
-  {nombre_detectado}
+{instrucciones_nombre}
 
 - codigo_comled:
   Usa EXACTAMENTE este valor:
@@ -140,7 +147,7 @@ img_instalacion
 """
 
 respuesta = client.chat.completions.create(
-    model="gpt-4.1-mini",
+    model="gpt-4o-mini",
     messages=[{"role": "user", "content": prompt}]
 )
 
@@ -156,7 +163,8 @@ except Exception as e:
     print(contenido)
     exit()
 
-datos["nombre_producto"] = nombre_detectado
+if nombre_detectado != "-":
+    datos["nombre_producto"] = nombre_detectado
 datos["codigo_comled"] = codigo_detectado
 
 instalacion = datos.get("instalacion", "").lower()

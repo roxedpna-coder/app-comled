@@ -37,7 +37,6 @@ alpha = arr[:, :, 3]
 # -------------------------
 # DETECTAR COLOR DE FONDO
 # -------------------------
-
 esquinas = np.concatenate([
     rgb[:40, :40].reshape(-1, 3),
     rgb[:40, -40:].reshape(-1, 3),
@@ -46,42 +45,47 @@ esquinas = np.concatenate([
 ])
 
 color_fondo = np.mean(esquinas, axis=0)
-
-r, g, b = color_fondo
 brillo_fondo = np.mean(color_fondo)
 variacion_fondo = np.std(esquinas)
 
-print("Color fondo detectado:", color_fondo)
-print("Brillo fondo:", brillo_fondo)
-print("Variación fondo:", variacion_fondo)
-
-# -------------------------
-# DECIDIR SI TOCAR FONDO
-# -------------------------
-
 fondo_blanco = brillo_fondo > 235 and variacion_fondo < 18
-fondo_gris_uniforme = (
-    120 < brillo_fondo < 235
-    and abs(r - g) < 15
-    and abs(g - b) < 15
-    and variacion_fondo < 25
-)
 
 if fondo_blanco:
-    print("Fondo blanco detectado: no se modifica el fondo")
-
-elif fondo_gris_uniforme:
-    print("Fondo gris uniforme detectado: convirtiendo a transparente")
-
-    distancia = np.linalg.norm(rgb - color_fondo, axis=2)
-
-    mascara_fondo = distancia < 45
-    alpha[mascara_fondo] = 0
-
-    arr[:, :, 3] = alpha
-
+    print("Fondo blanco puro detectado: Omitiendo recorte IA para evitar daños en la luminaria.")
+    procesada = img
 else:
-    print("Fondo no uniforme: no se modifica automáticamente")
+    # -------------------------
+    # REMOVER FONDO CON IA (REMBG)
+    # -------------------------
+    try:
+        from rembg import remove
+        from scipy.ndimage import binary_fill_holes
+        print("Fondo complejo detectado. Iniciando recorte inteligente con IA (rembg)...")
+        
+        # Extraer solo la máscara para poder repararla matemáticamente
+        mask_img = remove(img, only_mask=True)
+        mask_arr = np.array(mask_img)
+        
+        # Rellenar huecos internos (reflejos que la IA confundió con fondo)
+        mask_filled = binary_fill_holes(mask_arr > 128)
+        final_mask = np.where(mask_filled, 255, 0).astype(np.uint8)
+        
+        # Aplicar la máscara reparada a la imagen original intacta
+        procesada = img.copy()
+        procesada.putalpha(Image.fromarray(final_mask))
+        arr = np.array(procesada)
+        print("Recorte IA aplicado y reparado con éxito.")
+    except ImportError:
+        print("Advertencia: rembg no está instalado. Usando recorte básico por color...")
+        fondo_gris_uniforme = (120 < brillo_fondo < 235 and variacion_fondo < 25)
+        if fondo_gris_uniforme:
+            distancia = np.linalg.norm(rgb - color_fondo, axis=2)
+            mascara_fondo = distancia < 18
+            alpha[mascara_fondo] = 0
+            arr[:, :, 3] = alpha
+            procesada = Image.fromarray(arr)
+        else:
+            procesada = img
 
 # -------------------------
 # RECORTAR TRANSPARENCIA / CONTENIDO

@@ -8,11 +8,12 @@ import numpy as np
 # -------------------------
 # BUSCAR PDF MÁS RECIENTE
 # -------------------------
-pdfs_encontrados = glob.glob("pdfs/*.pdf")
+pdfs_encontrados = glob.glob("pdfs/*.pdf") + glob.glob("pdfs/*.png") + glob.glob("pdfs/*.jpg") + glob.glob("pdfs/*.jpeg")
 
 if not pdfs_encontrados:
-    print("No se encontró ningún PDF en la carpeta pdfs")
-    exit()
+    print("ERROR CRÍTICO: No se encontró ningún archivo (.pdf, .png, .jpg) en la carpeta 'pdfs/'.")
+    print("Por favor, asegúrate de colocar el PDF del proveedor en la carpeta correcta antes de ejecutar.")
+    exit(1)
 
 pdf_path = max(pdfs_encontrados, key=os.path.getmtime)
 print("PDF más reciente seleccionado (Proveedor):", pdf_path)
@@ -25,37 +26,43 @@ os.makedirs(temp_folder, exist_ok=True)
 for archivo in os.listdir(temp_folder):
     os.remove(os.path.join(temp_folder, archivo))
 
-# -------------------------
-# ABRIR PDF
-# -------------------------
-doc = fitz.open(pdf_path)
-pagina = doc[0]
-
-# -------------------------
-# EXTRAER IMÁGENES EMBEBIDAS
-# -------------------------
 imagenes_extraidas = []
-contador = 0
+es_imagen = pdf_path.lower().endswith(('.png', '.jpg', '.jpeg'))
+doc = None
 
-for num_pagina, pagina_doc in enumerate(doc):
-    for img in pagina_doc.get_images(full=True):
-        xref = img[0]
-        try:
-            base_image = doc.extract_image(xref)
-            image_bytes = base_image["image"]
-            image_ext = base_image["ext"]
-            ruta = os.path.join(temp_folder, f"img_{contador}.{image_ext}")
-            with open(ruta, "wb") as f:
-                f.write(image_bytes)
-            imagenes_extraidas.append(ruta)
-            contador += 1
-        except Exception as e:
-            pass
+if es_imagen:
+    print("Captura de pantalla detectada. Omitiendo extracción PDF y analizando la imagen directamente...")
+    ext = pdf_path.split('.')[-1]
+    ruta_copia = os.path.join(temp_folder, f"img_0.{ext}")
+    shutil.copy(pdf_path, ruta_copia)
+    # Almacenamos la tupla (ruta, num_pagina)
+    imagenes_extraidas.append((ruta_copia, 0))
+else:
+    # -------------------------
+    # ABRIR PDF Y EXTRAER IMÁGENES EMBEBIDAS
+    # -------------------------
+    doc = fitz.open(pdf_path)
+    contador = 0
+    for num_pagina, pagina_doc in enumerate(doc):
+        for img in pagina_doc.get_images(full=True):
+            xref = img[0]
+            try:
+                base_image = doc.extract_image(xref)
+                image_bytes = base_image["image"]
+                image_ext = base_image["ext"]
+                ruta = os.path.join(temp_folder, f"img_{contador}.{image_ext}")
+                with open(ruta, "wb") as f:
+                    f.write(image_bytes)
+                # Almacenamos la tupla (ruta, num_pagina)
+                imagenes_extraidas.append((ruta, num_pagina))
+                contador += 1
+            except Exception as e:
+                pass
 
 # -------------------------
 # ANALIZAR IMAGEN
 # -------------------------
-def analizar_imagen(ruta):
+def analizar_imagen(ruta, num_pagina):
     try:
         img_original = Image.open(ruta)
         
@@ -76,13 +83,35 @@ def analizar_imagen(ruta):
         gris = img.convert("L")
         histograma = gris.histogram()
         pixeles_totales = sum(histograma)
+        
         blancos = sum(histograma[225:256])
         porcentaje_blanco = blancos / pixeles_totales if pixeles_totales > 0 else 0
-        imagen_tecnica = porcentaje_blanco > 0.85
+        # Umbral rebajado a 0.80 para capturar planos de cotas con líneas/textos finos
+        imagen_tecnica = porcentaje_blanco > 0.80
+        
+        midtones = sum(histograma[50:200])
+        porcentaje_midtones = midtones / pixeles_totales if pixeles_totales > 0 else 0
+        es_logo = porcentaje_midtones < 0.05
+        
+        # Evaluar variación del fondo esquina por esquina de forma individual
+        # Esto evita que logos o textos en una sola esquina descarten una foto de estudio real.
+        arr = np.array(img.convert("RGB"))
+        h, w = arr.shape[:2]
+        if h > 40 and w > 40:
+            c1 = arr[:20, :20].reshape(-1, 3)
+            c2 = arr[:20, -20:].reshape(-1, 3)
+            c3 = arr[-20:, :20].reshape(-1, 3)
+            c4 = arr[-20:, -20:].reshape(-1, 3)
+            stds = [float(np.std(c)) for c in [c1, c2, c3, c4]]
+            esquinas_uniformes = sum(1 for s in stds if s < 10)
+        else:
+            esquinas_uniformes = 0
 
         return {
             "ruta": ruta, "width": width, "height": height, "area": area,
-            "brillo": brillo, "dominante_verde": dominante_verde, "imagen_tecnica": imagen_tecnica
+            "brillo": brillo, "dominante_verde": dominante_verde, "imagen_tecnica": imagen_tecnica,
+            "es_logo": es_logo, "porcentaje_blanco": porcentaje_blanco, 
+            "esquinas_uniformes": esquinas_uniformes, "pagina": num_pagina
         }
     except:
         return None
@@ -103,8 +132,8 @@ else:
     candidatas_producto = []
     candidatas_tecnicas = []
 
-    for ruta in imagenes_extraidas:
-        info = analizar_imagen(ruta)
+    for ruta, num_pagina in imagenes_extraidas:
+        info = analizar_imagen(ruta, num_pagina)
         if not info: continue
         
         todas_las_imagenes.append(info)
@@ -112,6 +141,11 @@ else:
         if info["width"] < 80 or info["height"] < 80: continue
         if info["brillo"] < 25: continue
         if info["dominante_verde"]: continue
+        if info.get("es_logo", False): continue
+        
+        # Al menos 2 de las 4 esquinas deben ser uniformes (fondo liso/estudio)
+        # Esto filtra fotos complejas de ambiente (sofás, oficinas) pero mantiene fotos de estudio reales
+        if info.get("esquinas_uniformes", 0) < 2: continue
         
         if info["imagen_tecnica"]:
             candidatas_tecnicas.append(info)
@@ -125,8 +159,26 @@ else:
 
         candidatas_producto.append(info)
 
+    # SISTEMA DE PUNTUACIÓN SEMÁNTICA PARA DIBUJOS TÉCNICOS / COTAS
+    # Evita elegir esquemas de cableado (DMX, drivers) en lugar de cotas reales
+    keywords_dim_positivos = ["LIGHT SIZE", "DIMENSIONAL DRAWING", "DIMENSION DRAWING", "DIMENSIONS", "MEDIDAS", "CROQUIS", "ESQUEMA", "UNIT: MM", "SIZE"]
+    keywords_dim_negativos = ["CONTROLLER", "WIRING", "CONNECTION", "CONEXION", "DMX", "WIRING DIAGRAM", "PROJECT CASE", "CASE", "CONTROL", "SISTEMA DE CONTROL"]
+
+    for info in candidatas_tecnicas:
+        score = 0
+        if doc:  # Solo si proviene de un PDF (para imágenes no hay doc/páginas de texto)
+            try:
+                text = doc[info["pagina"]].get_text().upper()
+                if any(p in text for p in keywords_dim_positivos):
+                    score += 100
+                if any(n in text for n in keywords_dim_negativos):
+                    score -= 300
+            except:
+                pass
+        info["score"] = score
+
     candidatas_producto = sorted(candidatas_producto, key=lambda x: x["area"], reverse=True)
-    candidatas_tecnicas = sorted(candidatas_tecnicas, key=lambda x: x["area"], reverse=True)
+    candidatas_tecnicas = sorted(candidatas_tecnicas, key=lambda x: (x.get("score", 0), x["area"]), reverse=True)
 
     if candidatas_producto:
         producto = candidatas_producto[0]["ruta"]
@@ -149,9 +201,11 @@ def recortar_dibujo_tecnico(imagen_path, salida_path):
         img = Image.open(imagen_path).convert("RGB")
         gris = img.convert("L")
         arr = np.array(gris)
-        mask = arr < 225
-        filas = np.where(mask.sum(axis=1) > 3)[0]
-        cols = np.where(mask.sum(axis=0) > 3)[0]
+        
+        # Umbral muy sensible: 252 detectará cualquier gris anti-aliasing sin coger blanco puro
+        mask = arr < 252
+        filas = np.where(mask.sum(axis=1) > 0)[0]
+        cols = np.where(mask.sum(axis=0) > 0)[0]
         
         if len(filas) == 0 or len(cols) == 0:
             img.save(salida_path)
@@ -159,24 +213,14 @@ def recortar_dibujo_tecnico(imagen_path, salida_path):
 
         x0, x1 = cols[0], cols[-1]
         y0, y1 = filas[0], filas[-1]
-        margen = 45
+        
+        margen = 25
         left = max(x0 - margen, 0)
         top = max(y0 - margen, 0)
         right = min(x1 + margen, img.width)
         bottom = min(y1 + margen, img.height)
 
         recorte = img.crop((left, top, right, bottom))
-        fondo = Image.new("RGB", recorte.size, (255, 255, 255))
-        diff = ImageChops.difference(recorte, fondo)
-        bbox = diff.getbbox()
-
-        if bbox:
-            left2 = max(bbox[0] - 25, 0)
-            top2 = max(bbox[1] - 25, 0)
-            right2 = min(bbox[2] + 25, recorte.width)
-            bottom2 = min(bbox[3] + 25, recorte.height)
-            recorte = recorte.crop((left2, top2, right2, bottom2))
-
         recorte.save(salida_path)
     except Exception as e:
         print("Error recortando dibujo tecnico:", e)
@@ -195,19 +239,23 @@ else:
     bloque_dimensiones = None
     pagina_dimensiones = None
     
-    keywords_dim = ["DIMENSIONES", "DIMENSIONS", "SIZE", "MEDIDAS", "DRAWING", "UNIT: MM", "DIMENSION"]
+    keywords_dim = ["DIMENSIONAL DRAWING", "DIMENSION DRAWING", "DIMENSIONS", "MEDIDAS", "DRAWING", "UNIT: MM", "ESQUEMA", "CROQUIS"]
     
-    for num_pagina, pagina_doc in enumerate(doc):
-        bloques = pagina_doc.get_text("blocks")
-        for bloque in bloques:
-            x0, y0, x1, y1, texto, *_ = bloque
-            texto_mayus = texto.upper()
-            if any(kw in texto_mayus for kw in keywords_dim):
-                bloque_dimensiones = bloque
-                pagina_dimensiones = pagina_doc
+    for kw in keywords_dim:
+        pass
+        
+    if doc:
+        for num_pagina, pagina_doc in enumerate(doc):
+            bloques = pagina_doc.get_text("blocks")
+            for bloque in bloques:
+                x0, y0, x1, y1, texto, *_ = bloque
+                texto_mayus = texto.upper()
+                if any(kw in texto_mayus for kw in keywords_dim):
+                    bloque_dimensiones = bloque
+                    pagina_dimensiones = pagina_doc
+                    break
+            if bloque_dimensiones:
                 break
-        if bloque_dimensiones:
-            break
             
     if candidatas_tecnicas and candidatas_tecnicas[0]["area"] > 5000:
         tecnica = candidatas_tecnicas[0]["ruta"]
@@ -221,11 +269,8 @@ else:
         # Se recorta el area de debajo del titulo encontrado
         top = y1 + 5
         bottom = min(y1 + page_height * 0.35, page_height)
-        # Asume que el dibujo esta en la mitad en la que se encontro el texto
-        if x0 > page_width * 0.5:
-            rect_dimensiones = fitz.Rect(page_width * 0.45, top, page_width * 0.98, bottom)
-        else:
-            rect_dimensiones = fitz.Rect(page_width * 0.02, top, page_width * 0.55, bottom)
+        # Abarcar todo el ancho de la página para no cortar nada
+        rect_dimensiones = fitz.Rect(0, top, page_width, bottom)
             
         pix = pagina_dimensiones.get_pixmap(matrix=fitz.Matrix(4, 4), clip=rect_dimensiones, alpha=False)
         ruta_temp_dim = "imagenes/temp/dimensiones_recorte_bruto.png"
@@ -247,5 +292,6 @@ import json
 with open("entradas/estado_img.json", "w", encoding="utf-8") as f:
     json.dump(estado_img, f)
 
-doc.close()
+if doc:
+    doc.close()
 print("Proceso de extracción de imágenes completado (Proveedor)")
