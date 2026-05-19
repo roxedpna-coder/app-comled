@@ -306,17 +306,25 @@ def run_extraction_pipeline(mode: str = "proveedor"):
 
         # Leer resultados
         datos = {}
-        estado = {}
-        
         datos_path = os.path.join(ENTRADAS_DIR, "datos.json")
         if os.path.exists(datos_path):
             with open(datos_path, "r", encoding="utf-8") as f:
                 datos = json.load(f)
 
-        estado_path = os.path.join(ENTRADAS_DIR, "estado.json")
-        if os.path.exists(estado_path):
-            with open(estado_path, "r", encoding="utf-8") as f:
-                estado = json.load(f)
+        # Determinar producto_ok y dimensiones_ok basándose en existencia física
+        producto_ok = os.path.exists(os.path.join(IMAGENES_DIR, "producto_final.png")) or os.path.exists(os.path.join(IMAGENES_DIR, "producto.png"))
+        dimensiones_ok = os.path.exists(os.path.join(IMAGENES_DIR, "dimensiones.png"))
+
+        # Determinar las URLs de previsualización correspondientes
+        producto_url = "/api/imagenes/producto_final.png" if os.path.exists(os.path.join(IMAGENES_DIR, "producto_final.png")) else ("/api/imagenes/producto.png" if os.path.exists(os.path.join(IMAGENES_DIR, "producto.png")) else "")
+        dimensiones_url = "/api/imagenes/dimensiones.png" if dimensiones_ok else ""
+
+        estado = {
+            "producto_ok": producto_ok,
+            "dimensiones_ok": dimensiones_ok,
+            "producto_url": producto_url,
+            "dimensiones_url": dimensiones_url
+        }
 
         return {
             "status": "success",

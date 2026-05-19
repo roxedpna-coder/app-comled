@@ -398,23 +398,23 @@ const missingImagesText = document.getElementById("missingImagesText");
 
 // Nombres legibles en español de los campos técnicos
 const fieldLabels = {
-    nombre_luminaria: "Nombre de Luminaria",
+    nombre_producto: "Nombre de Luminaria",
     codigo_comled: "Código COM.LED",
-    tipo_instalacion: "Tipo Instalación",
+    instalacion: "Tipo Instalación",
     potencia: "Potencia (W)",
     flujo_luminoso: "Flujo Luminoso (Lm)",
-    temperatura_color: "Temp. Color (CCT)",
-    indice_reproduccion_cromatica: "Índice IRC (CRI)",
-    angulo_apertura: "Ángulo Óptica",
-    estanqueidad_ip: "Protección (IP)",
-    resistencia_ik: "Resistencia (IK)",
-    driver: "Marca/Tipo Driver",
-    eficiencia: "Eficiencia (Lm/W)",
-    material: "Material Cuerpo",
-    acabado: "Acabado/Color",
-    garantia: "Garantía (Años)",
-    regulacion: "Regulación (Dimmable)",
-    diametro_corte: "Corte / Empotramiento"
+    cct: "Temp. Color (CCT)",
+    cri: "Índice IRC (CRI)",
+    apertura_haz: "Ángulo Óptica",
+    ip: "Protección (IP)",
+    ik: "Resistencia (IK)",
+    eficacia_luminosa: "Eficiencia (Lm/W)",
+    material_carcasa: "Material Cuerpo",
+    colores_disponibles: "Acabado/Color",
+    clase_aislamiento: "Clase Aislamiento",
+    tension_entrada: "Tensión de Entrada",
+    ugr: "Índice UGR",
+    aperturas_disponibles: "Ópticas Disponibles"
 };
 
 function loadValidationPanel() {
@@ -453,7 +453,8 @@ function updateImagesPanel() {
     const badgeProducto = document.getElementById("badgeProducto");
     
     if (extractionStatus.producto_ok) {
-        imgProductPreview.src = `${API_BASE}/imagenes/producto_final.png?t=${cacheBuster}`;
+        const url = extractionStatus.producto_url ? `http://127.0.0.1:8000${extractionStatus.producto_url}` : `${API_BASE}/imagenes/producto_final.png`;
+        imgProductPreview.src = `${url}?t=${cacheBuster}`;
         badgeProducto.className = "flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
         badgeProducto.innerHTML = '<i class="fa-solid fa-circle-check"></i> Detectada';
     } else {
@@ -467,7 +468,8 @@ function updateImagesPanel() {
     const badgeDimensiones = document.getElementById("badgeDimensiones");
 
     if (extractionStatus.dimensiones_ok) {
-        imgDimensionesPreview.src = `${API_BASE}/imagenes/dimensiones.png?t=${cacheBuster}`;
+        const url = extractionStatus.dimensiones_url ? `http://127.0.0.1:8000${extractionStatus.dimensiones_url}` : `${API_BASE}/imagenes/dimensiones.png`;
+        imgDimensionesPreview.src = `${url}?t=${cacheBuster}`;
         badgeDimensiones.className = "flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
         badgeDimensiones.innerHTML = '<i class="fa-solid fa-circle-check"></i> Detectada';
     } else {
