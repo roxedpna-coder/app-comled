@@ -12,6 +12,7 @@ manuales.extend(glob.glob("imagenes/manual/producto.*"))
 manuales.extend(glob.glob("imagenes/manual/*producto*.*"))
 
 if manuales:
+    manuales = sorted(manuales, key=os.path.getmtime, reverse=True)
     input_path = manuales[0]
     print("Usando imagen manual:", input_path)
 else:

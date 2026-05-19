@@ -109,6 +109,7 @@ manuales_producto.extend(glob.glob("imagenes/manual/producto.*"))
 manuales_producto.extend(glob.glob("imagenes/manual/*producto*.*"))
 
 if manuales_producto:
+    manuales_producto = sorted(manuales_producto, key=os.path.getmtime, reverse=True)
     shutil.copy(manuales_producto[0], "imagenes/producto.png")
     print("Producto manual copiado:", manuales_producto[0])
 
@@ -336,6 +337,7 @@ manuales_dimensiones.extend(glob.glob("imagenes/manual/dimensiones.*"))
 manuales_dimensiones.extend(glob.glob("imagenes/manual/*dimensiones*.*"))
 
 if manuales_dimensiones:
+    manuales_dimensiones = sorted(manuales_dimensiones, key=os.path.getmtime, reverse=True)
     shutil.copy(manuales_dimensiones[0], "imagenes/dimensiones.png")
     print("Dimensiones manuales copiadas:", manuales_dimensiones[0])
 

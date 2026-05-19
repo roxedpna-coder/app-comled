@@ -209,6 +209,29 @@ async def upload_catalog(
                 except Exception as de:
                     print(f"No se pudo eliminar imagen manual antigua {f}: {de}")
 
+        # 5. Limpiar imágenes de producto, cota y fotometría antiguas de la carpeta raíz
+        imagenes_a_limpiar = [
+            "producto.png", "producto_final.png", "producto_final_test.png",
+            "dimensiones.png", "fotometria_generada.png", "curva_polar.png"
+        ]
+        for img_name in imagenes_a_limpiar:
+            fp = os.path.join(IMAGENES_DIR, img_name)
+            if os.path.exists(fp):
+                try:
+                    os.remove(fp)
+                except Exception as de:
+                    print(f"No se pudo eliminar {img_name}: {de}")
+                    
+        temp_dir = os.path.join(IMAGENES_DIR, "temp")
+        if os.path.exists(temp_dir):
+            for f in os.listdir(temp_dir):
+                fp = os.path.join(temp_dir, f)
+                if os.path.isfile(fp) and not f.startswith("."):
+                    try:
+                        os.remove(fp)
+                    except Exception as de:
+                        print(f"No se pudo eliminar archivo temp antiguo {f}: {de}")
+
         # También limpiar estado_img.json viejo y estado.json viejo
         estado_img_path = os.path.join(ENTRADAS_DIR, "estado_img.json")
         if os.path.exists(estado_img_path):
@@ -345,10 +368,15 @@ async def upload_manual_image(
         # Eliminar archivos viejos del mismo tipo
         for f in os.listdir(manual_dir):
             if f.startswith(type):
-                os.remove(os.path.join(manual_dir, f))
+                try:
+                    os.remove(os.path.join(manual_dir, f))
+                except Exception as de:
+                    print(f"No se pudo eliminar imagen manual antigua {f}: {de}")
 
         file_ext = os.path.splitext(file.filename)[1]
-        save_path = os.path.join(manual_dir, f"{type}{file_ext}")
+        import time
+        timestamp = int(time.time())
+        save_path = os.path.join(manual_dir, f"{type}_{timestamp}{file_ext}")
         
         with open(save_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
