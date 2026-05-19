@@ -95,11 +95,23 @@
     <header class="sticky top-0 z-50 w-full glass-panel border-b transition-colors duration-300">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <!-- Logo COM.LED dinámico en SVG -->
-                <svg class="w-8 h-8 text-brand-600 dark:text-brand-400" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="8" stroke-dasharray="200 40" class="glow-effect"/>
-                    <path d="M40 35L65 50L40 65V35Z" fill="currentColor"/>
-                </svg>
+                <!-- Logo COM.LED dinámico con fallback -->
+                <div class="w-8 h-8 flex items-center justify-center shrink-0">
+                    <img id="customLogo" src="logo.png" class="w-full h-full object-contain hidden" alt="Logo COM.LED" onerror="this.classList.add('hidden'); document.getElementById('fallbackLogo').classList.remove('hidden');">
+                    <svg id="fallbackLogo" class="w-full h-full text-brand-600 dark:text-brand-400" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="8" stroke-dasharray="200 40" class="glow-effect"/>
+                        <path d="M40 35L65 50L40 65V35Z" fill="currentColor"/>
+                    </svg>
+                </div>
+                <script>
+                    // Validar si existe logo.png para sustituir el SVG
+                    const testImg = new Image();
+                    testImg.src = "logo.png";
+                    testImg.onload = function() {
+                        document.getElementById("customLogo").classList.remove("hidden");
+                        document.getElementById("fallbackLogo").classList.add("hidden");
+                    };
+                </script>
                 <div class="flex flex-col">
                     <span class="font-extrabold text-lg tracking-wider bg-gradient-to-r from-brand-600 to-cyan-500 dark:from-brand-400 dark:to-cyan-300 bg-clip-text text-transparent">COM.LED</span>
                     <span class="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500">Datasheet Engine</span>
