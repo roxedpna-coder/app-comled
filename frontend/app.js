@@ -62,6 +62,46 @@ if (savedTheme === "dark") {
     htmlEl.classList.remove("dark");
 }
 
+// Validar e inicializar logos personalizados
+let hasCustomLogo = false;
+const customLogoEl = document.getElementById("customBrandingLogo");
+const defaultBrandingEl = document.getElementById("defaultBranding");
+
+function updateBrandingLogo() {
+    if (!hasCustomLogo) return;
+    const isDark = htmlEl.classList.contains("dark");
+    if (isDark) {
+        customLogoEl.src = "logo-dark.png";
+    } else {
+        customLogoEl.src = "logo-light.png";
+    }
+}
+
+// Probar carga de logo-dark.png o logo-light.png
+const logoTesterDark = new Image();
+logoTesterDark.src = "logo-dark.png";
+logoTesterDark.onload = function() {
+    hasCustomLogo = true;
+    if (customLogoEl && defaultBrandingEl) {
+        defaultBrandingEl.classList.add("hidden");
+        customLogoEl.classList.remove("hidden");
+        updateBrandingLogo();
+    }
+};
+
+const logoTesterLight = new Image();
+logoTesterLight.src = "logo-light.png";
+logoTesterLight.onload = function() {
+    if (!hasCustomLogo) {
+        hasCustomLogo = true;
+        if (customLogoEl && defaultBrandingEl) {
+            defaultBrandingEl.classList.add("hidden");
+            customLogoEl.classList.remove("hidden");
+            updateBrandingLogo();
+        }
+    }
+};
+
 themeToggle.addEventListener("click", () => {
     if (htmlEl.classList.contains("dark")) {
         htmlEl.classList.remove("dark");
@@ -70,6 +110,7 @@ themeToggle.addEventListener("click", () => {
         htmlEl.classList.add("dark");
         localStorage.setItem("theme", "dark");
     }
+    updateBrandingLogo();
 });
 
 // Elementos de Navegación de Secciones
