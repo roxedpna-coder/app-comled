@@ -1,6 +1,8 @@
 import json
 import re
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 with open("entradas/datos.json", "r", encoding="utf-8") as archivo:
