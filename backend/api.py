@@ -3,14 +3,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import subprocess
 import os
+import sys
 import json
 import shutil
 import platform
+import webbrowser
+import threading
+import time
 from typing import Optional
 
 app = FastAPI(title="COM.LED Fichas Técnicas API", version="1.0")
 
-# Permitir CORS para desarrollo local (React en puerto 5173 o similar)
+# Permitir CORS para desarrollo local
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,12 +23,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Directorios del proyecto
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PDFS_DIR = os.path.join(BASE_DIR, "pdfs")
-ENTRADAS_DIR = os.path.join(BASE_DIR, "entradas")
-IMAGENES_DIR = os.path.join(BASE_DIR, "imagenes")
-SALIDAS_DIR = os.path.join(BASE_DIR, "salidas")
+# ------------------------------------------------------------
+# Detección de empaquetado (PyInstaller) y rutas del proyecto
+# ------------------------------------------------------------
+IS_FROZEN = getattr(sys, 'frozen', False)
+
+if IS_FROZEN:
+    # Ruta del directorio temporal donde PyInstaller extrae los archivos estáticos
+    BUNDLE_DIR = sys._MEIPASS
+    # Ruta de la carpeta donde se encuentra físicamente el ejecutable
+    CURRENT_DIR = os.path.dirname(sys.executable)
+else:
+    BUNDLE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    CURRENT_DIR = BUNDLE_DIR
+
+# Directorios de datos (al lado del ejecutable o en el directorio base)
+PDFS_DIR = os.path.join(CURRENT_DIR, "pdfs")
+ENTRADAS_DIR = os.path.join(CURRENT_DIR, "entradas")
+IMAGENES_DIR = os.path.join(CURRENT_DIR, "imagenes")
+SALIDAS_DIR = os.path.join(CURRENT_DIR, "salidas")
 
 # Asegurar que existan directorios básicos
 os.makedirs(PDFS_DIR, exist_ok=True)
@@ -44,28 +61,39 @@ def ping():
 
 
 def run_python_script(script_path: str):
-    """Ejecuta un script de Python 3 redirigiendo stdin/stdout/stderr para evitar errores de tty."""
+    """Ejecuta un script de Python 3. En producción/empaquetado, lo ejecuta en el mismo proceso
+    para evitar depender de que el sistema cliente tenga Python 3 instalado."""
+    print(f"Ejecutando script local: {script_path}")
     try:
-        res = subprocess.run(
-            ["python3", script_path],
-            capture_output=True,
-            text=True,
-            stdin=subprocess.DEVNULL,
-            cwd=BASE_DIR
-        )
-        print(f"[{script_path}] Código de salida: {res.returncode}")
-        if res.stdout and res.stdout.strip():
-            print(f"[{script_path}] Salida estándar:\n{res.stdout}")
-        if res.stderr and res.stderr.strip():
-            print(f"[{script_path}] Salida de error:\n{res.stderr}")
+        # Encontrar la ruta absoluta
+        abs_path = os.path.join(BUNDLE_DIR, script_path)
+        if not os.path.exists(abs_path):
+            abs_path = os.path.join(CURRENT_DIR, script_path)
+
+        # Configurar variables globales para simular ejecución de script
+        globals_dict = {
+            "__file__": abs_path,
+            "__name__": "__main__",
+            "__builtins__": __builtins__
+        }
+
+        # Leer y ejecutar el archivo
+        with open(abs_path, "r", encoding="utf-8") as f:
+            code = compile(f.read(), abs_path, "exec")
+            exec(code, globals_dict)
             
-        if res.returncode != 0:
-            err_details = res.stderr.strip() if res.stderr.strip() else res.stdout.strip()
-            raise RuntimeError(f"El script {script_path} falló (código {res.returncode}): {err_details}")
-        return res
+        print(f"[{script_path}] Ejecutado exitosamente en el proceso actual.")
+    except SystemExit as e:
+        # Capturar llamadas a exit() o sys.exit()
+        code = e.code if e.code is not None else 0
+        print(f"[{script_path}] Finalizó con código de salida: {code}")
+        if code != 0:
+            raise RuntimeError(f"El script {script_path} finalizó con error (código {code})")
     except Exception as e:
         print(f"Error al ejecutar script {script_path}: {e}")
-        raise
+        import traceback
+        traceback.print_exc()
+        raise RuntimeError(f"Error en script {script_path}: {str(e)}")
 
 
 def sync_manual_images():
@@ -636,9 +664,30 @@ def open_output_folder():
         raise HTTPException(status_code=500, detail=f"No se pudo abrir la carpeta: {str(e)}")
 
 
-app.mount("/", StaticFiles(directory=os.path.join(BASE_DIR, "frontend"), html=True), name="frontend")
+# Servir frontend (los archivos de la interfaz PWA)
+app.mount("/", StaticFiles(directory=os.path.join(BUNDLE_DIR, "frontend"), html=True), name="frontend")
+
+
+# Función para abrir la interfaz en el navegador automáticamente al iniciar
+def abrir_navegador():
+    time.sleep(1.5)
+    try:
+        webbrowser.open("http://127.0.0.1:8000")
+    except Exception as e:
+        print(f"No se pudo abrir el navegador automáticamente: {e}")
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("api:app", host="127.0.0.1", port=8000, reload=True)
+    
+    # Solo abrir el navegador automáticamente en modo de producción/empaquetado
+    # para evitar abrir múltiples pestañas durante el desarrollo con recarga automática
+    if IS_FROZEN or not os.getenv("AUTORELOAD", "False") == "True":
+        threading.Thread(target=abrir_navegador, daemon=True).start()
+
+    # Si está empaquetado, no podemos usar "reload=True"
+    if IS_FROZEN:
+        uvicorn.run(app, host="127.0.0.1", port=8000)
+    else:
+        # En desarrollo local usamos el string para habilitar recarga automática
+        uvicorn.run("api:app", host="127.0.0.1", port=8000, reload=True)
