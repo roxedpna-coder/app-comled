@@ -1069,12 +1069,43 @@ function initActionButtons() {
 // ==========================================
 // 10. INICIALIZACIÓN GLOBAL DE LA APLICACIÓN
 // ==========================================
+// Checker dinámico de estado del servidor
+function checkServerConnection() {
+    const badge = document.getElementById("serverStatusBadge");
+    const dot = document.getElementById("serverStatusDot");
+    const text = document.getElementById("serverStatusText");
+    
+    if (!badge || !dot || !text) return;
+
+    fetch(`${API_BASE}/ping`)
+        .then(response => {
+            if (response.ok) {
+                // Activo (Verde)
+                badge.className = "hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15";
+                dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse";
+                text.innerText = "Servidor Activo";
+            } else {
+                throw new Error("Offline");
+            }
+        })
+        .catch(() => {
+            // Desconectado (Rojo)
+            badge.className = "hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/15";
+            dot.className = "w-1.5 h-1.5 rounded-full bg-rose-500";
+            text.innerText = "Servidor Inactivo";
+        });
+}
+
 function initApp() {
     initTheme();
     checkCustomLogos();
     initFileUploader();
     initManualImageUploaders();
     initActionButtons();
+    
+    // Iniciar chequeo de conexión del servidor
+    checkServerConnection();
+    setInterval(checkServerConnection, 5000);
 
     // Listeners para pestañas superiores
     const tabs = {
