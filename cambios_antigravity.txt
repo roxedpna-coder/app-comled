@@ -1,0 +1,54 @@
+diff --git a/.DS_Store b/.DS_Store
+index 7ac9326..e10bdfa 100644
+Binary files a/.DS_Store and b/.DS_Store differ
+diff --git a/frontend/app.js b/frontend/app.js
+index deb2f82..5350b40 100644
+--- a/frontend/app.js
++++ b/frontend/app.js
+@@ -45,11 +45,43 @@ function setMode(mode) {
+         uploadSubtitle.innerText = "Sube un PDF de ficha COM.LED generado anteriormente para recuperar sus datos e imágenes y modificarlos directamente.";
+         paramsContainer.classList.add("hidden"); // Ocultar parámetros extra para modificar ya que vienen del PDF
+     }
++    // Asegurarnos de que después de cambiar de modo volvemos a la sección de subida
++    showSection("upload");
++}
++
++
++// Añadir listeners a los botones de pestañas con verificación
++function addTabListeners() {
++    const proveedorBtn = document.getElementById('tabProveedor');
++    const estandarBtn = document.getElementById('tabEstandar');
++    const modificarBtn = document.getElementById('tabModificar');
++    if (proveedorBtn) {
++        proveedorBtn.addEventListener('click', () => {
++            console.log('Tab Proveedor clicked');
++            setMode('proveedor');
++        });
++    } else {
++        console.warn('tabProveedor not found');
++    }
++    if (estandarBtn) {
++        estandarBtn.addEventListener('click', () => {
++            console.log('Tab Estándar clicked');
++            setMode('estandar');
++        });
++    } else {
++        console.warn('tabEstandar not found');
++    }
++    if (modificarBtn) {
++        modificarBtn.addEventListener('click', () => {
++            console.log('Tab Modificar clicked');
++            setMode('modificar');
++        });
++    } else {
++        console.warn('tabModificar not found');
++    }
+ }
++addTabListeners();
+ 
+-tabs.proveedor.addEventListener("click", () => setMode("proveedor"));
+-tabs.estandar.addEventListener("click", () => setMode("estandar"));
+-tabs.modificar.addEventListener("click", () => setMode("modificar"));
+ 
+ // Inicialización del Tema (Claro/Oscuro)
+ const htmlEl = document.documentElement;

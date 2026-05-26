@@ -5,6 +5,26 @@ import glob
 from PIL import Image, ImageStat, ImageChops
 import numpy as np
 
+# ------------------------------------------------------------
+# Función utilitaria: mejora la calidad de una imagen guardada
+# ------------------------------------------------------------
+def mejorar_calidad(ruta_imagen: str, factor: int = 2) -> None:
+    """Aumenta la resolución de la imagen guardada.
+
+    Carga la imagen con Pillow, la redimensiona por *factor* usando el filtro
+    LANCZOS (alta calidad) y sobrescribe el archivo original.
+    Esta operación es ligera y solo se aplica a imágenes que ya fueron
+    guardadas en disco (producto o dimensiones)."""
+    try:
+        img = Image.open(ruta_imagen)
+        # Redimensionar manteniendo la relación de aspecto
+        nueva = img.resize((img.width * factor, img.height * factor), Image.LANCZOS)
+        # Guardar con máxima calidad (PNG sin compresión excesiva)
+        nueva.save(ruta_imagen, quality=95)
+    except Exception:
+        # Si falla, simplemente ignoramos para no interrumpir el flujo
+        pass
+
 # -------------------------
 # BUSCAR PDF MÁS RECIENTE
 # -------------------------
@@ -127,6 +147,8 @@ if manuales_producto:
     manuales_producto = sorted(manuales_producto, key=os.path.getmtime, reverse=True)
     shutil.copy(manuales_producto[0], "imagenes/producto.png")
     print("Producto manual copiado:", manuales_producto[0])
+    # Mejorar resolución de la imagen copiada
+    mejorar_calidad("imagenes/producto.png")
     producto_detectado = True
 else:
     todas_las_imagenes = []
@@ -185,6 +207,8 @@ else:
         producto = candidatas_producto[0]["ruta"]
         shutil.copy(producto, "imagenes/producto.png")
         print("Producto detectado (embebido):", producto)
+        # Mejorar resolución de la imagen detectada
+        mejorar_calidad("imagenes/producto.png")
         producto_detectado = True
     else:
         # Nota: Al ser proveedor, evitar hacer recortes "a ciegas" por coordenadas estáticas
@@ -236,6 +260,8 @@ if manuales_dimensiones:
     manuales_dimensiones = sorted(manuales_dimensiones, key=os.path.getmtime, reverse=True)
     shutil.copy(manuales_dimensiones[0], "imagenes/dimensiones.png")
     print("Dimensiones manuales copiadas:", manuales_dimensiones[0])
+    # Mejorar resolución de la imagen de dimensiones manual
+    mejorar_calidad("imagenes/dimensiones.png")
     dimensiones_detectadas = True
 else:
     bloque_dimensiones = None
@@ -263,6 +289,8 @@ else:
         tecnica = candidatas_tecnicas[0]["ruta"]
         shutil.copy(tecnica, "imagenes/dimensiones.png")
         print("Dimensiones detectadas por análisis de imagen técnica flotante")
+        # Mejorar resolución de la imagen detectada
+        mejorar_calidad("imagenes/dimensiones.png")
         dimensiones_detectadas = True
     elif bloque_dimensiones:
         page_width = pagina_dimensiones.rect.width
@@ -278,6 +306,8 @@ else:
         ruta_temp_dim = "imagenes/temp/dimensiones_recorte_bruto.png"
         pix.save(ruta_temp_dim)
         recortar_dibujo_tecnico(ruta_temp_dim, "imagenes/dimensiones.png")
+        # Mejorar calidad después del recorte
+        mejorar_calidad("imagenes/dimensiones.png")
         print("Dimensiones detectadas por keyword")
         dimensiones_detectadas = True
     else:

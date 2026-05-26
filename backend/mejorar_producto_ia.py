@@ -34,16 +34,20 @@ r, g, b, a = img.split()
 rgb_img = Image.merge("RGB", (r, g, b))
 
 # 3. Suavizar para eliminar ruido de compresión JPG y "reflejos feos/cuadriculados"
+# Solo se aplica si la imagen original es de baja resolución (< 600px) para evitar difuminar imágenes HD
 from PIL import ImageFilter
-rgb_img = rgb_img.filter(ImageFilter.SMOOTH)
+if max(width, height) < 600:
+    rgb_img = rgb_img.filter(ImageFilter.SMOOTH)
+    print("Aplicado suavizado para reducción de ruido.")
 
 # 4. Mejorar Contraste muy suavemente (1.05x) para no quemar más los reflejos blancos
 enhancer_contrast = ImageEnhance.Contrast(rgb_img)
 rgb_img = enhancer_contrast.enhance(1.05)
 
-# 5. Nitidez suave (1.2x) para recuperar bordes tras el suavizado
+# 5. Nitidez suave (1.2x) para recuperar bordes
 enhancer_sharpness = ImageEnhance.Sharpness(rgb_img)
-rgb_img = enhancer_sharpness.enhance(1.2)
+rgb_img = enhancer_sharpness.enhance(1.3 if max(width, height) >= 1000 else 1.2)
+
 
 # 6. Reensamblar con transparencia intacta
 r2, g2, b2 = rgb_img.split()

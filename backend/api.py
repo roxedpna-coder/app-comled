@@ -43,6 +43,59 @@ def ping():
     return {"status": "ok", "message": "Servidor COM.LED activo"}
 
 
+def run_python_script(script_path: str):
+    """Ejecuta un script de Python 3 redirigiendo stdin/stdout/stderr para evitar errores de tty."""
+    try:
+        res = subprocess.run(
+            ["python3", script_path],
+            capture_output=True,
+            text=True,
+            stdin=subprocess.DEVNULL,
+            cwd=BASE_DIR
+        )
+        print(f"[{script_path}] Código de salida: {res.returncode}")
+        if res.stdout and res.stdout.strip():
+            print(f"[{script_path}] Salida estándar:\n{res.stdout}")
+        if res.stderr and res.stderr.strip():
+            print(f"[{script_path}] Salida de error:\n{res.stderr}")
+            
+        if res.returncode != 0:
+            err_details = res.stderr.strip() if res.stderr.strip() else res.stdout.strip()
+            raise RuntimeError(f"El script {script_path} falló (código {res.returncode}): {err_details}")
+        return res
+    except Exception as e:
+        print(f"Error al ejecutar script {script_path}: {e}")
+        raise
+
+
+def sync_manual_images():
+    """Busca las imágenes manuales más recientes y las copia a los archivos raíz correspondientes."""
+    manual_dir = os.path.join(IMAGENES_DIR, "manual")
+    if not os.path.exists(manual_dir):
+        return
+        
+    # Sincronizar producto
+    manual_products = [os.path.join(manual_dir, f) for f in os.listdir(manual_dir) if f.startswith("producto") and not f.startswith(".")]
+    if manual_products:
+        latest_product = max(manual_products, key=os.path.getmtime)
+        try:
+            shutil.copy(latest_product, os.path.join(IMAGENES_DIR, "producto.png"))
+            shutil.copy(latest_product, os.path.join(IMAGENES_DIR, "producto_final.png"))
+            print(f"Sincronizada imagen manual de producto desde: {latest_product}")
+        except Exception as e:
+            print("Error al sincronizar producto manual:", e)
+            
+    # Sincronizar dimensiones
+    manual_dims = [os.path.join(manual_dir, f) for f in os.listdir(manual_dir) if f.startswith("dimensiones") and not f.startswith(".")]
+    if manual_dims:
+        latest_dim = max(manual_dims, key=os.path.getmtime)
+        try:
+            shutil.copy(latest_dim, os.path.join(IMAGENES_DIR, "dimensiones.png"))
+            print(f"Sincronizada imagen manual de dimensiones desde: {latest_dim}")
+        except Exception as e:
+            print("Error al sincronizar dimensiones manuales:", e)
+
+
 def parse_existing_pdf(pdf_path: str):
     import fitz
     from PIL import Image
@@ -69,7 +122,7 @@ def parse_existing_pdf(pdf_path: str):
             
     if not has_metadata:
         print("No hay metadatos incrustados. Usando IA...")
-        subprocess.run(["python3", "backend/extraer_datos.py"], check=True)
+        run_python_script("backend/extraer_datos.py")
         
     # 2. Extraer imágenes embebidas
     doc = fitz.open(pdf_path)
@@ -267,17 +320,17 @@ def run_extraction_pipeline(mode: str = "proveedor"):
     try:
         if mode == "proveedor":
             print("Modo Proveedor: Ejecutando extraer_datos_proveedor.py")
-            subprocess.run(["python3", "backend/extraer_datos_proveedor.py"], check=True)
+            run_python_script("backend/extraer_datos_proveedor.py")
             print("Modo Proveedor: Ejecutando extraer_imagenes_proveedor.py")
-            subprocess.run(["python3", "backend/extraer_imagenes_proveedor.py"], check=True)
+            run_python_script("backend/extraer_imagenes_proveedor.py")
             print("Modo Proveedor: Ejecutando validar_extraccion_proveedor.py")
-            subprocess.run(["python3", "backend/validar_extraccion_proveedor.py"], check=True)
+            run_python_script("backend/validar_extraccion_proveedor.py")
             
         elif mode == "estandar":
             print("Modo Estándar: Ejecutando extraer_datos.py")
-            subprocess.run(["python3", "backend/extraer_datos.py"], check=True)
+            run_python_script("backend/extraer_datos.py")
             print("Modo Estándar: Ejecutando extraer_imagenes_pdf.py")
-            subprocess.run(["python3", "backend/extraer_imagenes_pdf.py"], check=True)
+            run_python_script("backend/extraer_imagenes_pdf.py")
             
             # Generar estado.json para modo estándar
             estado = {
@@ -311,19 +364,39 @@ def run_extraction_pipeline(mode: str = "proveedor"):
             with open(datos_path, "r", encoding="utf-8") as f:
                 datos = json.load(f)
 
-        # Determinar producto_ok y dimensiones_ok basándose en existencia física
-        producto_ok = os.path.exists(os.path.join(IMAGENES_DIR, "producto_final.png")) or os.path.exists(os.path.join(IMAGENES_DIR, "producto.png"))
-        dimensiones_ok = os.path.exists(os.path.join(IMAGENES_DIR, "dimensiones.png"))
+        # Determinar producto_ok y dimensiones_ok basándose en el estado de validación (estado.json) y existencia física real
+        estado_json_path = os.path.join(ENTRADAS_DIR, "estado.json")
+        producto_ok = False
+        dimensiones_ok = False
+        
+        # Validar existencia física real (evitando marcadores vacíos creados por fallos de extracción)
+        has_real_product = os.path.exists(os.path.join(IMAGENES_DIR, "producto_final.png")) or os.path.exists(os.path.join(IMAGENES_DIR, "producto.png"))
+        has_real_dims = os.path.exists(os.path.join(IMAGENES_DIR, "dimensiones.png")) and os.path.getsize(os.path.join(IMAGENES_DIR, "dimensiones.png")) > 2500
+
+        if os.path.exists(estado_json_path):
+            try:
+                with open(estado_json_path, "r", encoding="utf-8") as f:
+                    estado_final = json.load(f)
+                    imagenes_faltantes = estado_final.get("imagenes_faltantes", [])
+                    producto_ok = ("producto" not in imagenes_faltantes) and has_real_product
+                    dimensiones_ok = ("dimensiones" not in imagenes_faltantes) and has_real_dims
+            except Exception as ex:
+                print("Error al leer estado.json:", ex)
+                producto_ok = has_real_product
+                dimensiones_ok = has_real_dims
+        else:
+            producto_ok = has_real_product
+            dimensiones_ok = has_real_dims
 
         # Determinar las URLs de previsualización correspondientes
         producto_url = "/api/imagenes/producto_final.png" if os.path.exists(os.path.join(IMAGENES_DIR, "producto_final.png")) else ("/api/imagenes/producto.png" if os.path.exists(os.path.join(IMAGENES_DIR, "producto.png")) else "")
-        dimensiones_url = "/api/imagenes/dimensiones.png" if dimensiones_ok else ""
+        dimensiones_url = "/api/imagenes/dimensiones.png" if has_real_dims else ""
 
         estado = {
             "producto_ok": producto_ok,
             "dimensiones_ok": dimensiones_ok,
-            "producto_url": producto_url,
-            "dimensiones_url": dimensiones_url
+            "producto_url": producto_url if has_real_product else "",
+            "dimensiones_url": dimensiones_url if has_real_dims else ""
         }
 
         return {
@@ -389,25 +462,67 @@ async def upload_manual_image(
         with open(save_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # Actualizar estado_img.json
+        # Sincronizar inmediatamente a los archivos raíz para previsualización instantánea
+        sync_manual_images()
+
+        # --------------------------------------------------------------------------
+        # Detectar el estado FÍSICO REAL de ambas imágenes TRAS la sincronización
+        # Criterio: el archivo debe existir y pesar más de 2500 bytes (evitar vacíos)
+        # --------------------------------------------------------------------------
+        MIN_SIZE = 2500
+
+        def imagen_real(nombre):
+            p = os.path.join(IMAGENES_DIR, nombre)
+            return os.path.exists(p) and os.path.getsize(p) > MIN_SIZE
+
+        has_real_product = imagen_real("producto_final.png") or imagen_real("producto.png")
+        has_real_dims    = imagen_real("dimensiones.png")
+
+        # Actualizar estado_img.json reflejando el estado físico REAL de AMBAS imágenes
+        # Esto garantiza que la re-validación no borra el estado de la otra imagen
         estado_img_path = os.path.join(ENTRADAS_DIR, "estado_img.json")
         estado_img = {}
         if os.path.exists(estado_img_path):
             try:
-                with open(estado_img_path, "r") as f:
-                    estado_img = json.load(f)
-            except:
+                with open(estado_img_path, "r") as fp:
+                    estado_img = json.load(fp)
+            except Exception:
                 pass
-        
-        estado_img[f"{type}_ok"] = True
-        
-        with open(estado_img_path, "w") as f:
-            json.dump(estado_img, f, indent=2)
 
-        # Ejecutar re-validación
-        subprocess.run(["python3", "backend/validar_extraccion_proveedor.py"], check=True)
+        # Forzar el estado físico real en ambos campos
+        estado_img["producto_ok"]    = has_real_product
+        estado_img["dimensiones_ok"] = has_real_dims
 
-        return {"status": "success", "message": f"Imagen de {type} subida e integrada correctamente"}
+        with open(estado_img_path, "w") as fp:
+            json.dump(estado_img, fp, indent=2)
+
+        # Ejecutar re-validación con el estado_img.json ya actualizado
+        run_python_script("backend/validar_extraccion_proveedor.py")
+
+        # Construir URLs de previsualización
+        if imagen_real("producto_final.png"):
+            producto_url = "/api/imagenes/producto_final.png"
+        elif imagen_real("producto.png"):
+            producto_url = "/api/imagenes/producto.png"
+        else:
+            producto_url = ""
+
+        dimensiones_url = "/api/imagenes/dimensiones.png" if has_real_dims else ""
+
+        # El estado que se devuelve al frontend se basa ÚNICAMENTE en la existencia física
+        # real del archivo — sin depender del estado.json que puede estar desactualizado
+        estado_actualizado = {
+            "producto_ok":    has_real_product,
+            "dimensiones_ok": has_real_dims,
+            "producto_url":   producto_url,
+            "dimensiones_url": dimensiones_url
+        }
+
+        return {
+            "status": "success",
+            "message": f"Imagen de {type} subida e integrada correctamente",
+            "estado": estado_actualizado
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al subir imagen manual: {str(e)}")
 
@@ -419,6 +534,9 @@ def run_generation_pipeline(mode: str = "proveedor"):
     Crea el PowerPoint y exporta a PDF.
     """
     try:
+        # Sincronizar las imágenes manuales antes de correr el pipeline
+        sync_manual_images()
+
         if mode == "modificar":
             scripts = [
                 "backend/generar_fotometria.py",
@@ -438,14 +556,57 @@ def run_generation_pipeline(mode: str = "proveedor"):
 
         for script in scripts:
             print(f"Ejecutando: {script}")
-            subprocess.run(["python3", script], check=True)
+            run_python_script(script)
 
-        # Buscar nombre del archivo PDF generado
+        # Determinar el nombre exacto del PDF generado basándonos en el JSON de datos
+        import re
+        def limpiar_nombre_archivo(texto):
+            texto = texto.replace("/", "-")
+            texto = texto.replace("\\", "-")
+            texto = texto.replace(":", "")
+            texto = texto.replace("*", "")
+            texto = texto.replace("?", "")
+            texto = texto.replace('"', "")
+            texto = texto.replace("<", "")
+            texto = texto.replace(">", "")
+            texto = texto.replace("|", "")
+            texto = re.sub(r"\s+", " ", texto)
+            return texto.strip()
+
         pdf_generado = ""
-        for f in os.listdir(SALIDAS_DIR):
-            if f.endswith(".pdf") and f.startswith("ET CL-"):
-                pdf_generado = f
-                break
+        datos_path = os.path.join(ENTRADAS_DIR, "datos.json")
+        if os.path.exists(datos_path):
+            try:
+                with open(datos_path, "r", encoding="utf-8") as f:
+                    datos_c = json.load(f)
+                codigo = str(datos_c.get("codigo_comled", "000000")).strip()
+                nombre = str(datos_c.get("nombre_producto", "")).strip().upper()
+                potencia = str(datos_c.get("potencia", "")).strip().upper()
+                
+                nombre = limpiar_nombre_archivo(nombre)
+                potencia = limpiar_nombre_archivo(potencia)
+                
+                partes = [f"ET CL-{codigo}"]
+                if nombre and nombre != "-":
+                    partes.append(nombre)
+                if potencia and potencia != "-":
+                    partes.append(potencia)
+                pdf_generado = " ".join(partes) + ".pdf"
+            except Exception as e:
+                print("Error al calcular el nombre del PDF en el endpoint:", e)
+
+        # Si el archivo calculado no existe o falló la lectura, buscar en la carpeta por fecha
+        if not pdf_generado or not os.path.exists(os.path.join(SALIDAS_DIR, pdf_generado)):
+            pdfs_existentes = [
+                f for f in os.listdir(SALIDAS_DIR)
+                if f.endswith(".pdf") and f.startswith("ET CL-")
+            ]
+            if pdfs_existentes:
+                # Obtener el archivo más reciente
+                pdf_generado = max(
+                    pdfs_existentes,
+                    key=lambda x: os.path.getmtime(os.path.join(SALIDAS_DIR, x))
+                )
 
         return {
             "status": "success",
