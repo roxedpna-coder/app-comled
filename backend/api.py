@@ -31,6 +31,7 @@ importlib.metadata.version = _safe_version
 import openai
 import fitz
 import pptx
+import pptx.util
 import dotenv
 import PIL
 import PIL.Image
@@ -44,6 +45,8 @@ import scipy
 import numpy
 import matplotlib
 import matplotlib.pyplot
+import uvicorn
+import multipart
 
 # Evitar errores de "NoneType object has no attribute isatty" al compilar con PyInstaller en modo --noconsole
 class NullWriter:
