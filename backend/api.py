@@ -34,6 +34,10 @@ import pptx
 import dotenv
 import PIL
 import PIL.Image
+import PIL.ImageStat
+import PIL.ImageChops
+import PIL.ImageFilter
+import PIL.ImageEnhance
 import rembg
 import onnxruntime
 import scipy
