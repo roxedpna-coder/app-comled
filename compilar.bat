@@ -43,6 +43,7 @@ pyinstaller --name="COM-LED" ^
             --add-data "frontend;frontend" ^
             --add-data "plantillas;plantillas" ^
             --add-data "backend;backend" ^
+            --add-data "imagenes;imagenes" ^
             --icon="frontend/icon-512.png" ^
             backend/api.py
 

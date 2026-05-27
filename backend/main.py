@@ -16,7 +16,16 @@ with open("entradas/datos.json", "r", encoding="utf-8") as archivo:
 # ABRIR PLANTILLA
 # -------------------------
 
-ppt = Presentation("plantillas/FICHA_COMLED_MASTER.pptx")
+import sys
+if 'BUNDLE_DIR' in globals():
+    base_path = BUNDLE_DIR
+elif getattr(sys, 'frozen', False):
+    base_path = sys._MEIPASS
+else:
+    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+plantilla_path = os.path.join(base_path, "plantillas", "FICHA_COMLED_MASTER.pptx")
+ppt = Presentation(plantilla_path)
 
 # -------------------------
 # LIMPIAR VALORES
@@ -45,51 +54,54 @@ def limpiar_valor(valor):
 def obtener_icono_instalacion(datos):
     instalacion = str(datos.get("instalacion", "")).lower().strip()
 
+    def icon_path(filename):
+        return os.path.join(base_path, "imagenes", filename)
+
     # Prioridad absoluta: campo instalación
     if "empotr" in instalacion or "downlight" in instalacion:
-        return "imagenes/downlights.png"
+        return icon_path("downlights.png")
 
     if "carril" in instalacion:
-        return "imagenes/de-carril.png"
+        return icon_path("de-carril.png")
 
     if "superficie" in instalacion:
-        return "imagenes/de-superficie.png"
+        return icon_path("de-superficie.png")
 
     if "pared" in instalacion or "muro" in instalacion:
-        return "imagenes/de-pared.png"
+        return icon_path("de-pared.png")
 
     if "sobremesa" in instalacion or "mesa" in instalacion:
-        return "imagenes/de-sobremesa.png"
+        return icon_path("de-sobremesa.png")
 
     if "lineal" in instalacion or "perfil" in instalacion:
-        return "imagenes/lineales.png"
+        return icon_path("lineales.png")
 
     if "colg" in instalacion or "suspend" in instalacion:
-        return "imagenes/colgantes.png"
+        return icon_path("colgantes.png")
 
     if "proyector" in instalacion:
-        return "imagenes/proyectores.png"
+        return icon_path("proyectores.png")
 
     if "baliza" in instalacion:
-        return "imagenes/balizas.png"
+        return icon_path("balizas.png")
 
     if "emergencia" in instalacion:
-        return "imagenes/emergencia.png"
+        return icon_path("emergencia.png")
 
     if (
         "señal" in instalacion
         or "senaletica" in instalacion
         or "señaletica" in instalacion
     ):
-        return "imagenes/senaletica.png"
+        return icon_path("senaletica.png")
 
     if "integracion" in instalacion or "integración" in instalacion:
-        return "imagenes/integracion.png"
+        return icon_path("integracion.png")
 
     if "uplight" in instalacion:
-        return "imagenes/uplights.png"
+        return icon_path("uplights.png")
 
-    return "imagenes/tecnicas.png"
+    return icon_path("tecnicas.png")
 
 # -------------------------
 # ÓPTICA REPRESENTADA
