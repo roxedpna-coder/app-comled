@@ -14,6 +14,20 @@ from typing import Optional
 
 # Importaciones explícitas para forzar a PyInstaller a empaquetar estas dependencias
 # (Dado que los scripts secundarios se ejecutan vía exec() y no mediante subprocesos separados)
+
+# PARCHE PARA PYINSTALLER: Evitar errores "PackageNotFoundError" cuando librerías
+# como pymatting o rembg intentan leer su propia versión al inicializarse.
+import importlib.metadata
+_original_version = importlib.metadata.version
+
+def _safe_version(package_name):
+    try:
+        return _original_version(package_name)
+    except importlib.metadata.PackageNotFoundError:
+        return "unknown"
+
+importlib.metadata.version = _safe_version
+
 import openai
 import fitz
 import pptx
