@@ -21,6 +21,7 @@ import dotenv
 import PIL
 import PIL.Image
 import rembg
+import onnxruntime
 import scipy
 import numpy
 import matplotlib

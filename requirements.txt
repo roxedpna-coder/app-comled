@@ -4,6 +4,7 @@ openai
 python-dotenv
 pillow
 rembg
+onnxruntime
 scipy
 numpy
 fastapi
