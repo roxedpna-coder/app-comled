@@ -80,6 +80,17 @@ else:
     BUNDLE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     CURRENT_DIR = BUNDLE_DIR
 
+# ------------------------------------------------------------
+# Cargar variables de entorno (API Keys) desde el empaquetado o raíz
+# ------------------------------------------------------------
+import dotenv
+env_path = os.path.join(BUNDLE_DIR, ".env")
+if os.path.exists(env_path):
+    dotenv.load_dotenv(env_path)
+else:
+    # Por si el usuario prefiere poner el .env al lado del ejecutable
+    dotenv.load_dotenv(os.path.join(CURRENT_DIR, ".env"))
+
 # Directorios de datos (al lado del ejecutable o en el directorio base)
 PDFS_DIR = os.path.join(CURRENT_DIR, "pdfs")
 ENTRADAS_DIR = os.path.join(CURRENT_DIR, "entradas")
