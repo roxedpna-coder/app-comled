@@ -12,6 +12,20 @@ import threading
 import time
 from typing import Optional
 
+# Importaciones explícitas para forzar a PyInstaller a empaquetar estas dependencias
+# (Dado que los scripts secundarios se ejecutan vía exec() y no mediante subprocesos separados)
+import openai
+import fitz
+import pptx
+import dotenv
+import PIL
+import PIL.Image
+import rembg
+import scipy
+import numpy
+import matplotlib
+import matplotlib.pyplot
+
 # Evitar errores de "NoneType object has no attribute isatty" al compilar con PyInstaller en modo --noconsole
 class NullWriter:
     def write(self, text):
