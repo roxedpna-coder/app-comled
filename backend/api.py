@@ -12,6 +12,20 @@ import threading
 import time
 from typing import Optional
 
+# Evitar errores de "NoneType object has no attribute isatty" al compilar con PyInstaller en modo --noconsole
+class NullWriter:
+    def write(self, text):
+        pass
+    def flush(self):
+        pass
+    def isatty(self):
+        return False
+
+if sys.stdout is None:
+    sys.stdout = NullWriter()
+if sys.stderr is None:
+    sys.stderr = NullWriter()
+
 app = FastAPI(title="COM.LED Fichas Técnicas API", version="1.0")
 
 # Permitir CORS para desarrollo local
