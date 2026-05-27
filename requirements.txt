@@ -7,6 +7,9 @@ rembg
 onnxruntime
 scipy
 numpy
+matplotlib
+pymatting
+pooch
 fastapi
 uvicorn
 python-multipart
