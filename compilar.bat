@@ -40,7 +40,6 @@ pyinstaller --name="COM-LED" ^
             --noconsole ^
             --copy-metadata pymatting ^
             --copy-metadata rembg ^
-            --add-data ".env;." ^
             --add-data "frontend;frontend" ^
             --add-data "plantillas;plantillas" ^
             --add-data "backend;backend" ^
@@ -52,6 +51,11 @@ if %errorlevel% neq 0 (
     echo [ERROR] Hubo un problema al compilar la aplicacion.
     pause
     exit /b
+)
+
+:: Crear archivo .env vacio en dist si no existe para que el usuario ponga su API key
+if not exist dist\.env (
+    echo OPENAI_API_KEY=tu_clave_aqui_sk-...> dist\.env
 )
 
 echo.
