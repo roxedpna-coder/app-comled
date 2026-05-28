@@ -33,20 +33,21 @@ if ratio > 1.0:
 r, g, b, a = img.split()
 rgb_img = Image.merge("RGB", (r, g, b))
 
-# 3. Suavizar para eliminar ruido de compresión JPG y "reflejos feos/cuadriculados"
-# Solo se aplica si la imagen original es de baja resolución (< 600px) para evitar difuminar imágenes HD
-from PIL import ImageFilter
-if max(width, height) < 600:
-    rgb_img = rgb_img.filter(ImageFilter.SMOOTH)
-    print("Aplicado suavizado para reducción de ruido.")
+# 3. Darle vida a los colores (Saturación)
+enhancer_color = ImageEnhance.Color(rgb_img)
+rgb_img = enhancer_color.enhance(1.2) # 20% más vibrante
 
-# 4. Mejorar Contraste para darle más "punch" profesional (1.15x)
+# 4. Mejorar Contraste para darle más "punch" profesional
 enhancer_contrast = ImageEnhance.Contrast(rgb_img)
-rgb_img = enhancer_contrast.enhance(1.15)
+rgb_img = enhancer_contrast.enhance(1.1)
 
-# 5. Nitidez más fuerte (1.6x) para recuperar detalles y texturas finas
+# 5. Aplicar filtro de extracción de detalles finos
+from PIL import ImageFilter
+rgb_img = rgb_img.filter(ImageFilter.DETAIL)
+
+# 6. Nitidez algorítmica para recuperar texturas
 enhancer_sharpness = ImageEnhance.Sharpness(rgb_img)
-rgb_img = enhancer_sharpness.enhance(1.7 if max(width, height) >= 1000 else 1.6)
+rgb_img = enhancer_sharpness.enhance(1.5)
 
 
 # 6. Reensamblar con transparencia intacta
