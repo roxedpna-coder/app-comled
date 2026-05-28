@@ -78,7 +78,8 @@ ax.set_xticklabels(["-90°", "-60°", "-30°", "0°", "30°", "60°", "90°"])
 ax.grid(True, color='gray', linestyle='-', linewidth=1.2, alpha=0.8)
 ax.tick_params(axis='x', labelsize=24, pad=15, colors='black')
 
-ax.set_position([0.05, 0.05, 0.90, 0.90])
+# Aumentamos el margen izquierdo y derecho para que los textos grandes no se corten
+ax.set_position([0.15, 0.10, 0.70, 0.85])
 
 output_path = "imagenes/fotometria_generada.png"
 
