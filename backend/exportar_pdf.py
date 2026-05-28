@@ -71,9 +71,14 @@ output_dir = os.path.abspath(
     "salidas"
 )
 
-libreoffice_path = (
-    "/Applications/LibreOffice.app/Contents/MacOS/soffice"
-)
+import platform
+
+if platform.system() == "Windows":
+    libreoffice_path = r"C:\Program Files\LibreOffice\program\soffice.exe"
+    if not os.path.exists(libreoffice_path):
+        libreoffice_path = r"C:\Program Files (x86)\LibreOffice\program\soffice.exe"
+else:
+    libreoffice_path = "/Applications/LibreOffice.app/Contents/MacOS/soffice"
 
 # -------------------------
 # VALIDAR
