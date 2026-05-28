@@ -40,13 +40,13 @@ if max(width, height) < 600:
     rgb_img = rgb_img.filter(ImageFilter.SMOOTH)
     print("Aplicado suavizado para reducción de ruido.")
 
-# 4. Mejorar Contraste muy suavemente (1.05x) para no quemar más los reflejos blancos
+# 4. Mejorar Contraste para darle más "punch" profesional (1.15x)
 enhancer_contrast = ImageEnhance.Contrast(rgb_img)
-rgb_img = enhancer_contrast.enhance(1.05)
+rgb_img = enhancer_contrast.enhance(1.15)
 
-# 5. Nitidez suave (1.2x) para recuperar bordes
+# 5. Nitidez más fuerte (1.6x) para recuperar detalles y texturas finas
 enhancer_sharpness = ImageEnhance.Sharpness(rgb_img)
-rgb_img = enhancer_sharpness.enhance(1.3 if max(width, height) >= 1000 else 1.2)
+rgb_img = enhancer_sharpness.enhance(1.7 if max(width, height) >= 1000 else 1.6)
 
 
 # 6. Reensamblar con transparencia intacta

@@ -64,7 +64,15 @@ else:
         print("Fondo complejo detectado. Iniciando recorte inteligente con IA (rembg)...")
         
         # Extraer solo la máscara para poder repararla matemáticamente
-        mask_img = remove(img, only_mask=True)
+        # Usamos alpha_matting=True para bordes perfectos y no borrar blancos internos
+        mask_img = remove(
+            img, 
+            only_mask=True, 
+            alpha_matting=True, 
+            alpha_matting_foreground_threshold=240, 
+            alpha_matting_background_threshold=10, 
+            alpha_matting_erode_size=5
+        )
         mask_arr = np.array(mask_img)
         
         # Rellenar huecos internos (reflejos que la IA confundió con fondo)
