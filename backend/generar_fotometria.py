@@ -75,8 +75,10 @@ ax.set_rticks([])
 ax.set_xticks(np.deg2rad([90, 120, 150, 180, 210, 240, 270]))
 ax.set_xticklabels(["-90°", "-60°", "-30°", "0°", "30°", "60°", "90°"])
 
-ax.grid(True)
-ax.set_position([0.02, 0.02, 0.96, 0.96])
+ax.grid(True, color='gray', linestyle='-', linewidth=1.2, alpha=0.8)
+ax.tick_params(axis='x', labelsize=24, pad=15, colors='black')
+
+ax.set_position([0.05, 0.05, 0.90, 0.90])
 
 output_path = "imagenes/fotometria_generada.png"
 
