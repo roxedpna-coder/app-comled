@@ -95,15 +95,29 @@ if not os.path.exists(pptx_path):
 
 print("Exportando PDF...")
 
-subprocess.run([
-    libreoffice_path,
-    "--headless",
-    "--convert-to",
-    "pdf",
-    "--outdir",
-    output_dir,
-    pptx_path
-], check=True)
+import platform
+if platform.system() == "Windows" and not os.path.exists(libreoffice_path):
+    print("LibreOffice no encontrado, usando PowerPoint nativo (PowerShell)...")
+    ps_script = f"""
+    $ppt = New-Object -ComObject PowerPoint.Application;
+    $ppt.Visible = [Microsoft.Office.Core.MsoTriState]::msoTrue;
+    $pres = $ppt.Presentations.Open('{pptx_path}');
+    $pdfPath = '{os.path.join(output_dir, "ficha_final.pdf")}';
+    $pres.SaveAs($pdfPath, 32);
+    $pres.Close();
+    $ppt.Quit();
+    """
+    subprocess.run(["powershell", "-Command", ps_script], check=True)
+else:
+    subprocess.run([
+        libreoffice_path,
+        "--headless",
+        "--convert-to",
+        "pdf",
+        "--outdir",
+        output_dir,
+        pptx_path
+    ], check=True)
 
 # -------------------------
 # RENOMBRAR PDF

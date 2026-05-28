@@ -27,6 +27,8 @@ echo "🚀 Compilando aplicación..."
 pyinstaller --name="COM-LED" \
             --onefile \
             --noconsole \
+            --copy-metadata pymatting \
+            --copy-metadata rembg \
             --add-data "frontend:frontend" \
             --add-data "plantillas:plantillas" \
             --add-data "backend:backend" \
