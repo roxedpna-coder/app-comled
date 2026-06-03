@@ -146,7 +146,6 @@ flujo_luminoso
 eficacia_luminosa
 cct
 cri
-ugr
 ip
 ik
 apertura_haz

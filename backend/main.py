@@ -157,6 +157,21 @@ val_efi = str(datos.get("eficacia_resumido", ""))
 if not val_efi or len(val_efi) > 12 or "/" in val_efi:
     datos["eficacia_resumido"] = resumir_rango(datos.get("eficacia_luminosa", "-"), "lm/W")
 
+val_clase = str(datos.get("clase_aislamiento", "-")).upper()
+romano = ""
+if "III" in val_clase:
+    romano = "III"
+elif "II" in val_clase:
+    romano = "II"
+elif "I" in val_clase:
+    romano = "I"
+
+if romano:
+    datos["clase_resumido"] = romano
+    datos["clase_aislamiento"] = f"Clase {romano}"
+else:
+    datos["clase_resumido"] = "-"
+
 reemplazos = {}
 
 for clave, valor in datos.items():
