@@ -132,6 +132,7 @@ eficacia_luminosa
 eficacia_resumido
 cct
 cri
+ugr
 ip
 ip_resumido
 ik
