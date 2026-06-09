@@ -738,11 +738,34 @@ def abrir_navegador():
         print(f"No se pudo abrir el navegador automáticamente: {e}")
 
 
+def matar_zombie_puerto(puerto):
+    """Mata cualquier proceso antiguo que esté ocupando el puerto (ej. si se quedó colgado del fin de semana)"""
+    try:
+        sistema = platform.system()
+        if sistema == "Windows":
+            salida = subprocess.check_output(f"netstat -ano | findstr :{puerto}", shell=True).decode()
+            for linea in salida.strip().split('\n'):
+                if "LISTENING" in linea or "ESCUCHANDO" in linea:
+                    pid = linea.strip().split()[-1]
+                    if pid and pid != "0":
+                        subprocess.run(f"taskkill /F /PID {pid}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            salida = subprocess.check_output(f"lsof -t -i:{puerto}", shell=True).decode()
+            for pid in salida.strip().split():
+                if pid:
+                    subprocess.run(["kill", "-9", pid], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(1)
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
     import uvicorn
     
+    # Limpiar cualquier servidor fantasma antes de iniciar
+    matar_zombie_puerto(8000)
+    
     # Solo abrir el navegador automáticamente en modo de producción/empaquetado
-    # para evitar abrir múltiples pestañas durante el desarrollo con recarga automática
     if IS_FROZEN or not os.getenv("AUTORELOAD", "False") == "True":
         threading.Thread(target=abrir_navegador, daemon=True).start()
 
@@ -750,5 +773,4 @@ if __name__ == "__main__":
     if IS_FROZEN:
         uvicorn.run(app, host="127.0.0.1", port=8000)
     else:
-        # En desarrollo local usamos el string para habilitar recarga automática
         uvicorn.run("api:app", host="127.0.0.1", port=8000, reload=True)
