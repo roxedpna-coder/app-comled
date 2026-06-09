@@ -172,6 +172,11 @@ if romano:
 else:
     datos["clase_resumido"] = "-"
 
+# Forzar capitalización de la instalación para más profesionalismo
+val_inst = str(datos.get("instalacion", "-"))
+if val_inst and val_inst != "-":
+    datos["instalacion"] = val_inst.capitalize()
+
 reemplazos = {}
 
 for clave, valor in datos.items():
